@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from api.v1.auth import get_current_user
 from config.database import get_db
-from database.models import Concept, UserProgress
+from database.models import Concept, UserProgress, User
 
 
 # Pydantic models
