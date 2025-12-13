@@ -17,19 +17,9 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Database URLs - Auto-detect based on environment
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    # Use environment setting to determine database type
-    environment = os.getenv("ENVIRONMENT", "development").lower()
-    if environment == "production":
-        # Use PostgreSQL in production
-        postgres_url = get_postgres_url()
-        DATABASE_URL = postgres_url
-    else:
-        # Default to SQLite for development
-        sqlite_url = f"sqlite:///{os.getenv('SQLITE_DB_PATH', './jeseci_dev.db')}"
-        DATABASE_URL = sqlite_url
+# =============================================================================
+# CONFIGURATION CONSTANTS
+# =============================================================================
 
 # PostgreSQL configuration
 POSTGRES_SERVER = os.getenv("POSTGRES_SERVER", "localhost")
@@ -49,11 +39,48 @@ NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "neo4j_secure_password_2024")
 
+# =============================================================================
+# HELPER FUNCTIONS
+# =============================================================================
+
+def get_postgres_url() -> str:
+    """Build PostgreSQL URL with explicit driver specification"""
+    return f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
+
+def get_sqlite_url() -> str:
+    """Build SQLite URL"""
+    return f"sqlite:///{os.getenv('SQLITE_DB_PATH', './jeseci_dev.db')}"
+
+# =============================================================================
+# DATABASE URL CONFIGURATION
+# =============================================================================
+
+# Database URLs - Auto-detect based on environment
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    # Use environment setting to determine database type
+    environment = os.getenv("ENVIRONMENT", "development").lower()
+    if environment == "production":
+        # Use PostgreSQL in production
+        postgres_url = get_postgres_url()
+        DATABASE_URL = postgres_url
+    else:
+        # Default to SQLite for development
+        sqlite_url = get_sqlite_url()
+        DATABASE_URL = sqlite_url
+
+# =============================================================================
+# DATABASE TYPE DETECTION
+# =============================================================================
+
 # Database type detection
 IS_POSTGRES = "postgresql" in DATABASE_URL
 IS_SQLITE = "sqlite" in DATABASE_URL
 
-# Cross-database type compatibility
+# =============================================================================
+# CROSS-DATABASE COMPATIBILITY
+# =============================================================================
+
 def get_array_type():
     """Get appropriate array type for current database"""
     if IS_POSTGRES:
@@ -66,6 +93,10 @@ def get_json_type():
     """Get JSON type for current database"""
     from sqlalchemy import JSON
     return JSON
+
+# =============================================================================
+# DATABASE SETUP
+# =============================================================================
 
 # SQLAlchemy setup
 engine_kwargs = {
@@ -95,6 +126,9 @@ redis_pool = redis.ConnectionPool(
 # Neo4j driver
 neo4j_driver = None
 
+# =============================================================================
+# CONNECTION FUNCTIONS
+# =============================================================================
 
 def get_redis_connection() -> redis.Redis:
     """Get Redis connection from pool"""
@@ -137,19 +171,10 @@ def close_db_connections():
     if neo4j_driver:
         neo4j_driver.close()
 
+# =============================================================================
+# HEALTH CHECK FUNCTIONS
+# =============================================================================
 
-# Database URL builders
-def get_postgres_url() -> str:
-    """Build PostgreSQL URL"""
-    return f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
-
-
-def get_sqlite_url() -> str:
-    """Build SQLite URL"""
-    return f"sqlite:///{os.getenv('SQLITE_DB_PATH', './jeseci_dev.db')}"
-
-
-# Health check functions
 def check_postgres_connection() -> bool:
     """Check PostgreSQL connection"""
     try:
