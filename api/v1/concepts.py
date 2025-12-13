@@ -10,7 +10,7 @@ from sqlalchemy import and_, or_
 from pydantic import BaseModel
 
 from api.v1.auth import get_current_user
-from config.database import get_db
+from config.database import get_db, get_neo4j_driver
 from database.models import Concept, UserProgress, User
 
 
@@ -88,6 +88,39 @@ class ConceptSearch(BaseModel):
     difficulty_level: Optional[str] = None
     limit: Optional[int] = 20
     offset: Optional[int] = 0
+
+
+def sync_concept_to_neo4j(concept_id: str, data: ConceptCreate):
+    """Syncs a new concept to the Neo4j Graph"""
+    
+    driver = get_neo4j_driver()
+    if not driver:
+        print("WARNING: Neo4j driver not available.")
+        return
+    
+    query = """
+    MERGE (c:Concept {concept_id: $concept_id})
+    SET c.name = $name,
+        c.display_name = $display_name,
+        c.domain = $domain,
+        c.category = $category,
+        c.difficulty_level = $difficulty_level,
+        c.created_at = datetime()
+    """
+    
+    try:
+        with driver.session() as session:
+            session.run(query, 
+                concept_id=concept_id,
+                name=data.name,
+                display_name=data.display_name,
+                domain=data.domain,
+                category=data.category,
+                difficulty_level=data.difficulty_level
+            )
+            print(f"✅ Successfully synced concept {data.name} to Neo4j")
+    except Exception as e:
+        print(f"❌ Failed to sync to Neo4j: {str(e)}")
 
 
 # Router instance
@@ -249,6 +282,10 @@ async def create_concept(
     db.add(concept)
     db.commit()
     db.refresh(concept)
+    
+    # 🚀 SYNC TO NEO4J (The New Part)
+    # We use a background task or simple try/except so graph failure doesn't crash the API
+    sync_concept_to_neo4j(str(concept.concept_id), concept_data)
     
     return ConceptResponse(
         concept_id=str(concept.concept_id),
