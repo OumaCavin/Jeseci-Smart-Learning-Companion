@@ -37,7 +37,7 @@ aiohttp==3.8.0
 
 # Data Processing
 pandas==2.1.4
-numpy==1.26.2
+numpy>=1.26.0
 
 # Environment Management
 python-dotenv==1.2.1
@@ -63,8 +63,8 @@ python-dateutil==2.8.2
 
 # AI/ML (for future integration)
 openai==1.12.0
-transformers==4.36.0
-torch==2.1.2
+transformers>=4.36.0
+torch>=2.1.0
 
 # Performance
 gunicorn==21.2.0
