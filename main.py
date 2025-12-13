@@ -56,14 +56,36 @@ app = FastAPI(
     redoc_url="/redoc" if os.getenv("DEBUG", "false").lower() == "true" else None
 )
 
-# Add middleware
+# ==================================================================
+# CORS CONFIGURATION (Crucial for Frontend Integration)
+# ==================================================================
+# 1. Default safe origins
+origins = [
+    "http://localhost:8080",      # Jac Frontend
+    "http://127.0.0.1:8080",      # Jac Frontend (IP)
+    "http://localhost:3000",      # React default
+]
+
+# 2. Add origins from .env file
+env_origins = os.getenv("ALLOWED_ORIGINS", "")
+if env_origins:
+    # Split by comma and strip whitespace
+    extra_origins = [origin.strip() for origin in env_origins.split(",") if origin.strip()]
+    origins.extend(extra_origins)
+
+# Remove duplicates
+origins = list(set(origins))
+
+print(f"🌐 Allowed CORS Origins: {origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("ALLOWED_ORIGINS", "*").replace(" ", "").replace('"', '').split(","),
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=origins,        # Explicit list is required for allow_credentials=True
+    allow_credentials=True,       # Essential for Login/Auth headers
+    allow_methods=["*"],          # Allow all methods (GET, POST, PUT, DELETE, etc.)
+    allow_headers=["*"],          # Allow all headers
 )
+# ==================================================================
 
 app.add_middleware(
     TrustedHostMiddleware,
