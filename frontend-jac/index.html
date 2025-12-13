@@ -181,6 +181,42 @@
         </div>
     </div>
 
+    <!-- Register Modal -->
+    <div id="register-modal" class="modal-overlay">
+        <div class="auth-modal">
+            <div class="modal-header">
+                <h2>📝 Create Account</h2>
+                <button class="close-btn" onclick="closeRegisterModal()">&times;</button>
+            </div>
+            <form id="register-form" onsubmit="handleRegister(event)">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="reg-firstname">First Name</label>
+                        <input type="text" id="reg-firstname" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-lastname">Last Name</label>
+                        <input type="text" id="reg-lastname" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="reg-username">Username</label>
+                    <input type="text" id="reg-username" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-email">Email</label>
+                    <input type="email" id="reg-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-password">Password</label>
+                    <input type="password" id="reg-password" required>
+                </div>
+                <div id="register-error" style="color: red; margin-bottom: 1rem; display: none;"></div>
+                <button type="submit" class="cta-btn primary" style="width: 100%">Create Account</button>
+            </form>
+        </div>
+    </div>
+
     <!-- JAC Runtime Integration -->
     <script>
         // JAC Runtime Configuration
@@ -502,9 +538,54 @@
             }
         }
 
-        function showConcepts() {
+        async function showConcepts() {
             console.log('📚 Showing concepts page...');
-            // Implementation would show concepts page
+            const mainContent = document.querySelector('.main-content');
+            
+            // Show loading state
+            mainContent.innerHTML = '<div style="text-align:center; padding: 2rem;"><div class="loading-spinner"></div> Loading concepts...</div>';
+
+            try {
+                // Fetch from your FastAPI Backend
+                const response = await window.JAC_HTTP.get('/concepts');
+                
+                if (response.success) {
+                    const concepts = response.data;
+                    
+                    // Render the Concept Grid
+                    let conceptsHtml = `
+                        <div class="concepts-page" style="padding: 2rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                                <h2>📚 Knowledge Library</h2>
+                                <button class="cta-btn secondary">+ New Concept</button>
+                            </div>
+                            <div class="features-grid" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
+                    `;
+
+                    concepts.forEach(concept => {
+                        conceptsHtml += `
+                            <div class="feature-card" style="border-left: 4px solid #667eea; text-align: left;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="background: #e2e8f0; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">${concept.domain}</span>
+                                    <span style="color: #667eea; font-weight: bold;">${concept.difficulty_level}</span>
+                                </div>
+                                <h3 style="margin: 1rem 0;">${concept.display_name}</h3>
+                                <p style="color: #4a5568; font-size: 0.9rem; margin-bottom: 1rem;">${concept.description}</p>
+                                <button class="cta-btn secondary" style="width: 100%;" onclick="alert('Learning Path for ${concept.name} coming soon!')">Start Learning</button>
+                            </div>
+                        `;
+                    });
+
+                    conceptsHtml += '</div></div>';
+                    mainContent.innerHTML = conceptsHtml;
+                    
+                    // Update active nav state
+                    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+                    document.querySelector('button[onclick="showConcepts()"]').classList.add('active');
+                }
+            } catch (error) {
+                mainContent.innerHTML = `<div class="jac-error">Failed to load concepts: ${error.message}</div>`;
+            }
         }
 
         function showLearningPaths() {
@@ -595,9 +676,50 @@
         }
 
         function showRegisterModal() {
-            console.log('📝 Showing register modal...');
-            // Implementation would show register modal
-            alert('Register modal would open here. This demonstrates JAC frontend integration with your FastAPI backend.');
+            document.getElementById('register-modal').classList.add('active');
+        }
+
+        function closeRegisterModal() {
+            document.getElementById('register-modal').classList.remove('active');
+            document.getElementById('register-error').style.display = 'none';
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            const errorDiv = document.getElementById('register-error');
+            
+            // Gather data
+            const userData = {
+                username: document.getElementById('reg-username').value,
+                email: document.getElementById('reg-email').value,
+                password: document.getElementById('reg-password').value,
+                first_name: document.getElementById('reg-firstname').value,
+                last_name: document.getElementById('reg-lastname').value
+            };
+
+            submitBtn.textContent = "Creating Account...";
+            submitBtn.disabled = true;
+
+            try {
+                const response = await window.JAC_HTTP.post('/auth/register', userData);
+                
+                if (response.success) {
+                    alert("✅ Account created! Please log in.");
+                    closeRegisterModal();
+                    showLoginModal();
+                    // Pre-fill login
+                    document.getElementById('username').value = userData.username;
+                } else {
+                    throw new Error(response.error || "Registration failed");
+                }
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                submitBtn.textContent = "Create Account";
+                submitBtn.disabled = false;
+            }
         }
 
         // Test backend connectivity
