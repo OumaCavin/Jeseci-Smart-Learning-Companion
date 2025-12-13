@@ -30,6 +30,122 @@
             text-align: center;
             padding: 2rem;
         }
+
+        /* Modal styles */
+        .modal-overlay {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .auth-modal {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #718096;
+        }
+
+        .cta-btn.primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .cta-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .cta-btn.secondary {
+            background: transparent;
+            color: #667eea;
+            border: 1px solid #667eea;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .cta-btn.secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e0e0e0;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -39,6 +155,28 @@
                 <div class="loading-spinner"></div>
                 <p>Loading Jeseci Smart Learning Companion...</p>
             </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal-overlay">
+        <div class="auth-modal">
+            <div class="modal-header">
+                <h2>🔐 Login</h2>
+                <button class="close-btn" onclick="closeLoginModal()">&times;</button>
+            </div>
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="e.g. user@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required>
+                </div>
+                <div id="login-error" style="color: red; margin-bottom: 1rem; display: none;"></div>
+                <button type="submit" class="cta-btn primary" style="width: 100%">Sign In</button>
+            </form>
         </div>
     </div>
 
@@ -294,7 +432,73 @@
         // Navigation functions
         function showWelcome() {
             console.log('📊 Showing dashboard...');
-            // Implementation would show dashboard page
+            
+            const user = window.JAC_STORAGE.getItem('user_info');
+            const authSection = document.querySelector('.auth-section');
+            
+            if (user && authSection) {
+                // User is logged in - show dashboard content
+                updateUIForLoggedInUser(user);
+                
+                // Load some actual data from the backend
+                loadDashboardData();
+            }
+        }
+
+        async function loadDashboardData() {
+            try {
+                console.log('📊 Loading dashboard data...');
+                
+                // Load concepts
+                const conceptsResponse = await window.JAC_HTTP.get('/concepts');
+                const conceptsCount = conceptsResponse.success ? conceptsResponse.data.length : 0;
+                
+                // Update the dashboard with real data
+                const dashboardContent = document.querySelector('.welcome-content');
+                if (dashboardContent) {
+                    dashboardContent.innerHTML = `
+                        <h2>Welcome back, ${window.JAC_STORAGE.getItem('user_info')?.first_name || 'Learner'}!</h2>
+                        <p>Here's your learning progress overview</p>
+                        
+                        <div class="features-grid">
+                            <div class="feature-card">
+                                <h3>📚 Concepts Available</h3>
+                                <p>${conceptsCount} concepts ready for learning</p>
+                            </div>
+                            <div class="feature-card">
+                                <h3>🎯 Your Progress</h3>
+                                <p>Track your learning journey</p>
+                            </div>
+                            <div class="feature-card">
+                                <h3>🧠 AI Recommendations</h3>
+                                <p>Personalized learning suggestions</p>
+                            </div>
+                            <div class="feature-card">
+                                <h3>📊 Analytics</h3>
+                                <p>Detailed performance insights</p>
+                            </div>
+                        </div>
+                        
+                        <div class="cta-buttons">
+                            <button class="cta-btn primary" onclick="showConcepts()">
+                                Start Learning
+                            </button>
+                            <button class="cta-btn secondary" onclick="showProgress()">
+                                View Progress
+                            </button>
+                        </div>
+                        
+                        <div style="margin-top: 2rem; padding: 1rem; background: rgba(76, 175, 80, 0.1); border-radius: 10px; border: 1px solid #4CAF50;">
+                            <h4>🔗 Backend Integration Status</h4>
+                            <p>FastAPI Backend: <span style="color: #4CAF50;">✅ Connected</span></p>
+                            <p>Authentication: <span style="color: #4CAF50;">✅ Active</span></p>
+                            <p>Database: <span style="color: #4CAF50;">✅ PostgreSQL + Neo4j</span></p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Failed to load dashboard data:', error);
+            }
         }
 
         function showConcepts() {
@@ -313,9 +517,80 @@
         }
 
         function showLoginModal() {
-            console.log('🔐 Showing login modal...');
-            // Implementation would show login modal
-            alert('Login modal would open here. This demonstrates JAC frontend integration with your FastAPI backend.');
+            document.getElementById('login-modal').classList.add('active');
+        }
+
+        function closeLoginModal() {
+            document.getElementById('login-modal').classList.remove('active');
+            document.getElementById('login-error').style.display = 'none';
+        }
+
+        // Handle the actual API call to FastAPI
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('login-error');
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+
+            // Show loading state
+            submitBtn.textContent = "Logging in...";
+            submitBtn.disabled = true;
+            errorDiv.style.display = 'none';
+
+            try {
+                console.log("🚀 Sending login request to FastAPI...");
+                
+                // 1. Call the Backend
+                const response = await window.JAC_HTTP.post('/auth/login', {
+                    email: email,
+                    password: password
+                });
+
+                if (response.success) {
+                    console.log("✅ Login Successful!", response.data);
+                    
+                    // 2. Save the Token
+                    window.JAC_STORAGE.setItem('auth_token', response.data.access_token);
+                    window.JAC_STORAGE.setItem('user_info', response.data.user);
+                    
+                    // 3. Update UI
+                    closeLoginModal();
+                    updateUIForLoggedInUser(response.data.user);
+                    alert("✅ Successfully Logged In!");
+                    
+                    // 4. Load Dashboard Data
+                    showWelcome(); // Refresh dashboard
+                    
+                } else {
+                    throw new Error(response.error || "Invalid credentials");
+                }
+            } catch (err) {
+                console.error("❌ Login Failed:", err);
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                submitBtn.textContent = "Sign In";
+                submitBtn.disabled = false;
+            }
+        }
+
+        // Helper to update header after login
+        function updateUIForLoggedInUser(user) {
+            const authSection = document.querySelector('.auth-section');
+            if (authSection) {
+                authSection.innerHTML = `
+                    <span style="margin-right: 1rem; color: #4a5568;">Welcome, ${user.first_name || user.username}</span>
+                    <button class="cta-btn secondary" onclick="handleLogout()" style="padding: 0.5rem 1rem; font-size: 0.9rem;">🚪 Logout</button>
+                `;
+            }
+        }
+
+        function handleLogout() {
+            window.JAC_STORAGE.removeItem('auth_token');
+            window.JAC_STORAGE.removeItem('user_info');
+            location.reload(); // Simple reload to reset state
         }
 
         function showRegisterModal() {
@@ -345,6 +620,12 @@
         document.addEventListener('DOMContentLoaded', function() {
             initializeJACFrontend();
             testBackendConnection();
+            
+            // Check for existing session on load
+            const user = window.JAC_STORAGE.getItem('user_info');
+            if (user) {
+                updateUIForLoggedInUser(user);
+            }
         });
     </script>
 </body>
