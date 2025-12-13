@@ -91,6 +91,11 @@ class ConceptSearch(BaseModel):
     offset: Optional[int] = 0
 
 
+class ConceptRelationship(BaseModel):
+    target_concept_id: str
+    relationship_type: str = "PREREQUISITE"  # or RELATED_TO, SUB_CONCEPT_OF
+
+
 def sync_concept_to_neo4j(concept_id: str, data: ConceptCreate):
     """Syncs a new concept to the Neo4j Graph"""
     
@@ -546,3 +551,43 @@ async def get_available_categories(
     return {
         "categories": [category[0] for category in categories]
     }
+
+
+@router.post("/{source_concept_id}/relations")
+async def create_concept_relationship(
+    source_concept_id: str,
+    relation_data: ConceptRelationship,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create a relationship between two concepts in the Graph"""
+    
+    # 1. Verify both concepts exist in Postgres (Safety Check)
+    source = db.query(Concept).filter(Concept.concept_id == source_concept_id).first()
+    target = db.query(Concept).filter(Concept.concept_id == relation_data.target_concept_id).first()
+    
+    if not source or not target:
+        raise HTTPException(status_code=404, detail="One or both concepts not found")
+
+    # 2. Sync Relationship to Neo4j
+    driver = get_neo4j_driver()
+    if not driver:
+        raise HTTPException(status_code=500, detail="Graph database unavailable")
+
+    # Cypher query to draw the arrow
+    query = f"""
+    MATCH (source:Concept {{concept_id: $source_id}})
+    MATCH (target:Concept {{concept_id: $target_id}})
+    MERGE (source)-[r:{relation_data.relationship_type.upper()}]->(target)
+    RETURN type(r)
+    """
+    
+    try:
+        with driver.session() as session:
+            session.run(query, source_id=source_concept_id, target_id=relation_data.target_concept_id)
+            print(f"✅ Linked '{source.name}' -> '{target.name}'")
+    except Exception as e:
+        print(f"❌ Graph Error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create graph relationship")
+        
+    return {"message": f"Successfully created {relation_data.relationship_type} relationship"}
