@@ -4,6 +4,7 @@ Knowledge graph and concept management
 """
 
 from typing import List, Optional
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
@@ -477,6 +478,46 @@ async def get_user_concept_progress(
         "next_review_date": progress.next_review_date.isoformat() if progress.next_review_date else None,
         "has_progress": True
     }
+
+
+@router.post("/{concept_id}/sync")
+async def sync_concept_manually(
+    concept_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Manually force-sync a concept from Postgres to Neo4j"""
+    
+    # 1. Fetch the data from Postgres
+    concept = db.query(Concept).filter(Concept.concept_id == concept_id).first()
+    
+    if not concept:
+        raise HTTPException(status_code=404, detail="Concept not found in PostgreSQL")
+    
+    # 2. Convert SQLAlchemy model to Pydantic model for the sync function
+    concept_data = ConceptCreate(
+        name=concept.name,
+        display_name=concept.display_name,
+        description=concept.description,
+        detailed_description=concept.detailed_description,
+        category=concept.category,
+        subcategory=concept.subcategory,
+        domain=concept.domain,
+        difficulty_level=concept.difficulty_level,
+        complexity_score=concept.complexity_score,
+        cognitive_load=concept.cognitive_load,
+        key_terms=concept.key_terms,
+        synonyms=concept.synonyms,
+        learning_objectives=concept.learning_objectives,
+        practical_applications=concept.practical_applications,
+        real_world_examples=concept.real_world_examples,
+        common_misconceptions=concept.common_misconceptions
+    )
+
+    # 3. Run the Sync
+    sync_concept_to_neo4j(concept_id, concept_data)
+    
+    return {"message": f"Successfully synced '{concept.name}' to Neo4j"}
 
 
 @router.get("/domains/list")
