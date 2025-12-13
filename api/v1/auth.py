@@ -15,16 +15,20 @@ from pydantic import BaseModel, EmailStr
 
 import sys
 import os
+from dotenv import load_dotenv
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+
+# Load environment variables
+load_dotenv()
 
 from config.database import get_db
 from database.models import User, UserLearningPreferences
 
 # Security
 security = HTTPBearer()
-SECRET_KEY = "jeseci_jwt_secret_key_2024_super_secure_for_production"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+SECRET_KEY = os.getenv("SECRET_KEY", "jeseci_jwt_secret_key_2024_super_secure_for_production")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
 
 # Pydantic models for API requests/responses
