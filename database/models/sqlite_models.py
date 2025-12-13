@@ -361,3 +361,26 @@ class UserAchievement(Base):
         Index('idx_achievement_type', 'achievement_type'),
         Index('idx_achievement_category', 'category'),
     )
+
+
+class UserConceptProgress(Base):
+    """Tracks a user's progress on a specific concept - simplified for dashboard"""
+    __tablename__ = "user_concept_progress"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String(36), ForeignKey("users.user_id"), nullable=False)
+    concept_id = Column(String(36), ForeignKey("concepts.concept_id"), nullable=False)
+    
+    # Progress tracking fields matching frontend expectations
+    status = Column(String(20), default="not_started")  # not_started, in_progress, completed
+    progress_percent = Column(Integer, default=0)       # 0 to 100
+    time_spent_minutes = Column(Integer, default=0)     # Total time spent in minutes
+    last_accessed = Column(DateTime, default=datetime.utcnow)
+    
+    # Optional user notes
+    user_notes = Column(Text, nullable=True)
+    
+    # Unique constraint to prevent duplicate progress records
+    __table_args__ = (
+        Index('idx_concept_progress_unique', 'user_id', 'concept_id', unique=True),
+    )

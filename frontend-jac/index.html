@@ -486,33 +486,55 @@
             try {
                 console.log('📊 Loading dashboard data...');
                 
-                // Load concepts
+                // 1. Fetch Concepts Count
                 const conceptsResponse = await window.JAC_HTTP.get('/concepts');
                 const conceptsCount = conceptsResponse.success ? conceptsResponse.data.length : 0;
                 
-                // Update the dashboard with real data
+                // 2. NEW: Fetch Real Progress Stats
+                let stats = {
+                    total_time_spent: 0,
+                    completion_rate: 0,
+                    learning_streak: 0,
+                    total_concepts_learned: 0
+                };
+                
+                try {
+                    const progressResponse = await window.JAC_HTTP.get('/progress');
+                    if (progressResponse.success) {
+                        stats = progressResponse.data.overall_stats;
+                    }
+                } catch (e) {
+                    console.warn("Could not load progress stats, defaulting to 0");
+                }
+                
+                // 3. Update the Dashboard HTML with REAL variables
                 const dashboardContent = document.querySelector('.welcome-content');
+                const userName = window.JAC_STORAGE.getItem('user_info')?.first_name || 'Learner';
+
                 if (dashboardContent) {
                     dashboardContent.innerHTML = `
-                        <h2>Welcome back, ${window.JAC_STORAGE.getItem('user_info')?.first_name || 'Learner'}!</h2>
+                        <h2>Welcome back, ${userName}!</h2>
                         <p>Here's your learning progress overview</p>
                         
                         <div class="features-grid">
                             <div class="feature-card">
                                 <h3>📚 Concepts Available</h3>
-                                <p>${conceptsCount} concepts ready for learning</p>
+                                <p><strong>${conceptsCount}</strong> concepts ready for learning</p>
                             </div>
                             <div class="feature-card">
                                 <h3>🎯 Your Progress</h3>
-                                <p>Track your learning journey</p>
+                                <p><strong>${stats.completion_rate}%</strong> Average Completion</p>
+                                <p style="font-size: 0.85rem; color: #666;">${stats.total_time_spent} hours spent learning</p>
                             </div>
                             <div class="feature-card">
-                                <h3>🧠 AI Recommendations</h3>
-                                <p>Personalized learning suggestions</p>
+                                <h3>🔥 Learning Streak</h3>
+                                <p><strong>${stats.learning_streak} Days</strong> Active</p>
+                                <p style="font-size: 0.85rem; color: #666;">Keep it up!</p>
                             </div>
                             <div class="feature-card">
                                 <h3>📊 Analytics</h3>
-                                <p>Detailed performance insights</p>
+                                <p><strong>${stats.total_concepts_learned}</strong> concepts mastered</p>
+                                <button class="cta-btn secondary" onclick="showProgress()" style="margin-top:0.5rem; width:100%">View Full Report</button>
                             </div>
                         </div>
                         
@@ -528,8 +550,8 @@
                         <div style="margin-top: 2rem; padding: 1rem; background: rgba(76, 175, 80, 0.1); border-radius: 10px; border: 1px solid #4CAF50;">
                             <h4>🔗 Backend Integration Status</h4>
                             <p>FastAPI Backend: <span style="color: #4CAF50;">✅ Connected</span></p>
-                            <p>Authentication: <span style="color: #4CAF50;">✅ Active</span></p>
                             <p>Database: <span style="color: #4CAF50;">✅ PostgreSQL + Neo4j</span></p>
+                            <p>Live Stats: <span style="color: #4CAF50;">✅ Active</span></p>
                         </div>
                     `;
                 }

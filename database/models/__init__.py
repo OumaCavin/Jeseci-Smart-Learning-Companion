@@ -11,3 +11,9 @@ from config.database import Base
 
 # Import SQLite-compatible models
 from .sqlite_models import *
+
+# Export the UserConceptProgress model for easy importing
+__all__ = [
+    'User', 'Concept', 'UserProgress', 'UserConceptProgress', 'LearningPath',
+    'LearningSession', 'Quiz', 'QuizAttempt', 'UserAchievement', 'Base'
+]
