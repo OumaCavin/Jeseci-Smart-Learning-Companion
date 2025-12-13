@@ -167,9 +167,9 @@
             </div>
             <form id="login-form" onsubmit="handleLogin(event)">
                 <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" placeholder="e.g. cavin_admin" required>
-                    <small style="color: #666; font-size: 0.8rem;">Backend expects 'username' field, not 'email'</small>
+                    <label for="username">Username or Email</label>
+                    <input type="text" id="username" placeholder="e.g. cavin_admin or cavin@jeseci.com" required>
+                    <small style="color: #666; font-size: 0.8rem;">Enter your username OR email address</small>
                 </div>
                 <div class="form-group">
                     <label for="password">Password</label>
@@ -543,9 +543,9 @@
             try {
                 console.log("🚀 Sending login request to FastAPI...");
                 
-                // 1. Call the Backend (using 'username' to match backend model)
+                // 1. Call the Backend (supports both username and email)
                 const response = await window.JAC_HTTP.post('/auth/login', {
-                    username: username,
+                    username: username,  // Can be username OR email
                     password: password
                 });
 

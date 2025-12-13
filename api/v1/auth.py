@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 import bcrypt
 import jwt
 from pydantic import BaseModel, EmailStr
@@ -43,7 +43,7 @@ class UserCreate(BaseModel):
 
 
 class UserLogin(BaseModel):
-    username: str
+    username: str  # Can be either username OR email address
     password: str
 
 
@@ -201,13 +201,18 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
 async def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
     """Authenticate user and return access token"""
     
-    # Find user by username
-    user = db.query(User).filter(User.username == user_credentials.username).first()
+    # Find user by username OR email (supports both login methods)
+    user = db.query(User).filter(
+        or_(
+            User.username == user_credentials.username,
+            User.email == user_credentials.username
+        )
+    ).first()
     
     if not user or not verify_password(user_credentials.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="Incorrect username, email, or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
