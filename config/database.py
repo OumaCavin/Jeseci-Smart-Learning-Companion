@@ -157,7 +157,7 @@ def create_db_session() -> Generator[Session, None, None]:
 
 def get_db() -> Generator[Session, None, None]:
     """FastAPI dependency for database sessions"""
-    return create_db_session()
+    yield from create_db_session()
 
 
 def init_db():
