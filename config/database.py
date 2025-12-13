@@ -17,12 +17,19 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Database URLs
+# Database URLs - Auto-detect based on environment
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
-    # Default to SQLite for development if no PostgreSQL URL is provided
-    sqlite_url = f"sqlite:///{os.getenv('SQLITE_DB_PATH', './jeseci_dev.db')}"
-    DATABASE_URL = sqlite_url
+    # Use environment setting to determine database type
+    environment = os.getenv("ENVIRONMENT", "development").lower()
+    if environment == "production":
+        # Use PostgreSQL in production
+        postgres_url = get_postgres_url()
+        DATABASE_URL = postgres_url
+    else:
+        # Default to SQLite for development
+        sqlite_url = f"sqlite:///{os.getenv('SQLITE_DB_PATH', './jeseci_dev.db')}"
+        DATABASE_URL = sqlite_url
 
 # PostgreSQL configuration
 POSTGRES_SERVER = os.getenv("POSTGRES_SERVER", "localhost")
