@@ -588,14 +588,326 @@
             }
         }
 
-        function showLearningPaths() {
+        async function showLearningPaths() {
             console.log('🛤️ Showing learning paths...');
-            // Implementation would show learning paths page
+            const mainContent = document.querySelector('.main-content');
+            
+            // Show loading state
+            mainContent.innerHTML = '<div style="text-align:center; padding: 2rem;"><div class="loading-spinner"></div> Loading learning paths...</div>';
+
+            try {
+                // Try to fetch from backend first, then fall back to mock data
+                let learningPaths = [];
+                
+                try {
+                    const response = await window.JAC_HTTP.get('/learning-paths');
+                    if (response.success) {
+                        learningPaths = response.data;
+                    }
+                } catch (error) {
+                    console.log('Learning paths API not available, using mock data');
+                }
+
+                // If no data from backend, use mock data
+                if (learningPaths.length === 0) {
+                    learningPaths = [
+                        {
+                            id: 1,
+                            title: "Object-Oriented Programming Mastery",
+                            description: "Complete path from basics to advanced OOP concepts",
+                            difficulty: "Intermediate",
+                            duration: "4 weeks",
+                            concepts_count: 8,
+                            progress: 0,
+                            estimated_hours: 24,
+                            category: "Programming"
+                        },
+                        {
+                            id: 2,
+                            title: "Python for Beginners",
+                            description: "Start your programming journey with Python fundamentals",
+                            difficulty: "Beginner", 
+                            duration: "6 weeks",
+                            concepts_count: 12,
+                            progress: 45,
+                            estimated_hours: 36,
+                            category: "Programming"
+                        },
+                        {
+                            id: 3,
+                            title: "Data Structures & Algorithms",
+                            description: "Master fundamental computer science concepts",
+                            difficulty: "Advanced",
+                            duration: "8 weeks", 
+                            concepts_count: 15,
+                            progress: 0,
+                            estimated_hours: 48,
+                            category: "Computer Science"
+                        },
+                        {
+                            id: 4,
+                            title: "Web Development Fundamentals",
+                            description: "HTML, CSS, JavaScript and modern web technologies",
+                            difficulty: "Beginner",
+                            duration: "5 weeks",
+                            concepts_count: 10,
+                            progress: 75,
+                            estimated_hours: 30,
+                            category: "Web Development"
+                        }
+                    ];
+                }
+
+                // Render the Learning Paths Grid
+                let pathsHtml = `
+                    <div class="learning-paths-page" style="padding: 2rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                            <h2>🛤️ Learning Paths</h2>
+                            <div style="display: flex; gap: 1rem;">
+                                <select id="difficulty-filter" onchange="filterLearningPaths()" style="padding: 0.5rem; border-radius: 5px; border: 1px solid #ddd;">
+                                    <option value="">All Difficulties</option>
+                                    <option value="Beginner">Beginner</option>
+                                    <option value="Intermediate">Intermediate</option>
+                                    <option value="Advanced">Advanced</option>
+                                </select>
+                                <select id="category-filter" onchange="filterLearningPaths()" style="padding: 0.5rem; border-radius: 5px; border: 1px solid #ddd;">
+                                    <option value="">All Categories</option>
+                                    <option value="Programming">Programming</option>
+                                    <option value="Computer Science">Computer Science</option>
+                                    <option value="Web Development">Web Development</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="learning-paths-grid" class="features-grid" style="grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));">
+                `;
+
+                learningPaths.forEach(path => {
+                    const progressColor = path.progress === 0 ? '#e2e8f0' : '#667eea';
+                    const progressText = path.progress === 0 ? 'Not Started' : `${path.progress}% Complete`;
+                    
+                    pathsHtml += `
+                        <div class="feature-card" style="border-left: 4px solid ${progressColor}; text-align: left; position: relative;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                                <span style="background: #e2e8f0; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 500;">${path.category}</span>
+                                <span style="color: ${progressColor}; font-weight: bold; font-size: 0.9rem;">${path.difficulty}</span>
+                            </div>
+                            
+                            <h3 style="margin: 0 0 0.5rem 0; color: #2d3748;">${path.title}</h3>
+                            <p style="color: #4a5568; font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.5;">${path.description}</p>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem; font-size: 0.85rem; color: #718096;">
+                                <div>📚 ${path.concepts_count} concepts</div>
+                                <div>⏱️ ${path.duration}</div>
+                                <div>🕒 ${path.estimated_hours}h estimated</div>
+                                <div>📊 ${progressText}</div>
+                            </div>
+                            
+                            ${path.progress > 0 ? `
+                                <div style="margin: 1rem 0;">
+                                    <div style="background: #e2e8f0; height: 6px; border-radius: 3px; overflow: hidden;">
+                                        <div style="background: linear-gradient(45deg, #667eea, #764ba2); height: 100%; width: ${path.progress}%; transition: width 0.3s ease;"></div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            
+                            <button class="cta-btn ${path.progress === 0 ? 'primary' : 'secondary'}" style="width: 100%;" onclick="startLearningPath(${path.id}, '${path.title}')">
+                                ${path.progress === 0 ? '🚀 Start Path' : path.progress === 100 ? '✅ Completed' : '▶️ Continue'}
+                            </button>
+                        </div>
+                    `;
+                });
+
+                pathsHtml += '</div></div>';
+                mainContent.innerHTML = pathsHtml;
+                
+                // Update active nav state
+                document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+                document.querySelector('button[onclick="showLearningPaths()"]').classList.add('active');
+                
+            } catch (error) {
+                mainContent.innerHTML = `<div class="jac-error">Failed to load learning paths: ${error.message}</div>`;
+            }
         }
 
-        function showProgress() {
+        function filterLearningPaths() {
+            // This would filter the learning paths based on selected criteria
+            console.log('🔍 Filtering learning paths...');
+            // For now, just reload the page
+            showLearningPaths();
+        }
+
+        function startLearningPath(pathId, title) {
+            alert(`🚀 Starting learning path: "${title}"\n\nThis feature will launch the interactive learning experience for this path.\n\nComing soon: Interactive lessons, quizzes, and progress tracking!`);
+        }
+
+        async function showProgress() {
             console.log('📈 Showing progress page...');
-            // Implementation would show progress page
+            const mainContent = document.querySelector('.main-content');
+            
+            // Show loading state
+            mainContent.innerHTML = '<div style="text-align:center; padding: 2rem;"><div class="loading-spinner"></div> Loading progress data...</div>';
+
+            try {
+                // Try to fetch progress from backend, then fall back to mock data
+                let progressData = null;
+                
+                try {
+                    const response = await window.JAC_HTTP.get('/progress');
+                    if (response.success) {
+                        progressData = response.data;
+                    }
+                } catch (error) {
+                    console.log('Progress API not available, using mock data');
+                }
+
+                // If no data from backend, use mock data
+                if (!progressData) {
+                    progressData = {
+                        user: window.JAC_STORAGE.getItem('user_info'),
+                        overall_stats: {
+                            total_concepts_learned: 3,
+                            total_time_spent: 45, // hours
+                            learning_streak: 7, // days
+                            completion_rate: 68 // percentage
+                        },
+                        recent_activity: [
+                            { date: '2025-12-14', activity: 'Completed Inheritance concept', time: '2 hours ago' },
+                            { date: '2025-12-13', activity: 'Practiced OOP fundamentals', time: '1 day ago' },
+                            { date: '2025-12-12', activity: 'Started Object-Oriented Programming', time: '2 days ago' },
+                            { date: '2025-12-11', activity: 'Completed Python basics review', time: '3 days ago' }
+                        ],
+                        concept_progress: [
+                            { name: 'Object-Oriented Programming', progress: 100, status: 'completed' },
+                            { name: 'Inheritance', progress: 100, status: 'completed' },
+                            { name: 'Encapsulation', progress: 75, status: 'in_progress' },
+                            { name: 'Polymorphism', progress: 0, status: 'not_started' },
+                            { name: 'Abstraction', progress: 0, status: 'not_started' }
+                        ],
+                        weekly_goals: {
+                            target: 10, // hours
+                            completed: 6.5, // hours
+                            remaining_days: 3
+                        }
+                    };
+                }
+
+                const user = progressData.user || window.JAC_STORAGE.getItem('user_info');
+                const stats = progressData.overall_stats;
+                
+                // Render the Progress Dashboard
+                let progressHtml = `
+                    <div class="progress-page" style="padding: 2rem;">
+                        <div style="margin-bottom: 2rem;">
+                            <h2>📈 Your Learning Progress</h2>
+                            <p style="color: #718096;">Track your learning journey and achievements</p>
+                        </div>
+
+                        <!-- Overall Stats Grid -->
+                        <div class="features-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); margin-bottom: 2rem;">
+                            <div class="feature-card" style="text-align: center; border-left: 4px solid #4CAF50;">
+                                <h3 style="color: #4CAF50; font-size: 2.5rem; margin: 0;">${stats.total_concepts_learned}</h3>
+                                <p style="margin: 0.5rem 0; font-weight: 600;">Concepts Learned</p>
+                                <p style="color: #718096; font-size: 0.9rem; margin: 0;">Keep up the great work!</p>
+                            </div>
+                            
+                            <div class="feature-card" style="text-align: center; border-left: 4px solid #2196F3;">
+                                <h3 style="color: #2196F3; font-size: 2.5rem; margin: 0;">${stats.total_time_spent}h</h3>
+                                <p style="margin: 0.5rem 0; font-weight: 600;">Time Invested</p>
+                                <p style="color: #718096; font-size: 0.9rem; margin: 0;">Total learning hours</p>
+                            </div>
+                            
+                            <div class="feature-card" style="text-align: center; border-left: 4px solid #FF9800;">
+                                <h3 style="color: #FF9800; font-size: 2.5rem; margin: 0;">${stats.learning_streak}</h3>
+                                <p style="margin: 0.5rem 0; font-weight: 600;">Day Streak</p>
+                                <p style="color: #718096; font-size: 0.9rem; margin: 0;">Keep it going!</p>
+                            </div>
+                            
+                            <div class="feature-card" style="text-align: center; border-left: 4px solid #9C27B0;">
+                                <h3 style="color: #9C27B0; font-size: 2.5rem; margin: 0;">${stats.completion_rate}%</h3>
+                                <p style="margin: 0.5rem 0; font-weight: 600;">Completion Rate</p>
+                                <p style="color: #718096; font-size: 0.9rem; margin: 0;">Overall performance</p>
+                            </div>
+                        </div>
+
+                        <!-- Weekly Goals -->
+                        <div class="feature-card" style="margin-bottom: 2rem;">
+                            <h3 style="margin-top: 0;">🎯 Weekly Learning Goal</h3>
+                            <div style="margin: 1rem 0;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span>Progress: ${progressData.weekly_goals.completed}h / ${progressData.weekly_goals.target}h</span>
+                                    <span style="color: #667eea; font-weight: 600;">${Math.round((progressData.weekly_goals.completed / progressData.weekly_goals.target) * 100)}%</span>
+                                </div>
+                                <div style="background: #e2e8f0; height: 12px; border-radius: 6px; overflow: hidden;">
+                                    <div style="background: linear-gradient(45deg, #667eea, #764ba2); height: 100%; width: ${(progressData.weekly_goals.completed / progressData.weekly_goals.target) * 100}%; transition: width 0.3s ease;"></div>
+                                </div>
+                                <p style="color: #718096; font-size: 0.9rem; margin-top: 0.5rem;">${progressData.weekly_goals.remaining_days} days remaining this week</p>
+                            </div>
+                        </div>
+
+                        <!-- Concept Progress -->
+                        <div class="feature-card" style="margin-bottom: 2rem;">
+                            <h3 style="margin-top: 0;">📚 Concept Progress</h3>
+                            <div style="display: grid; gap: 1rem;">
+                `;
+
+                progressData.concept_progress.forEach(concept => {
+                    const statusColor = concept.status === 'completed' ? '#4CAF50' : concept.status === 'in_progress' ? '#FF9800' : '#e2e8f0';
+                    const statusIcon = concept.status === 'completed' ? '✅' : concept.status === 'in_progress' ? '⏳' : '⭕';
+                    const statusText = concept.status === 'completed' ? 'Completed' : concept.status === 'in_progress' ? 'In Progress' : 'Not Started';
+                    
+                    progressHtml += `
+                        <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                            <span style="font-size: 1.5rem;">${statusIcon}</span>
+                            <div style="flex: 1;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                    <h4 style="margin: 0; font-size: 1rem;">${concept.name}</h4>
+                                    <span style="color: ${statusColor}; font-weight: 600; font-size: 0.9rem;">${statusText}</span>
+                                </div>
+                                <div style="background: #e2e8f0; height: 6px; border-radius: 3px; overflow: hidden;">
+                                    <div style="background: ${statusColor}; height: 100%; width: ${concept.progress}%; transition: width 0.3s ease;"></div>
+                                </div>
+                            </div>
+                            <span style="color: #718096; font-weight: 600;">${concept.progress}%</span>
+                        </div>
+                    `;
+                });
+
+                progressHtml += `
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity -->
+                        <div class="feature-card">
+                            <h3 style="margin-top: 0;">📅 Recent Activity</h3>
+                            <div style="display: grid; gap: 0.75rem;">
+                `;
+
+                progressData.recent_activity.forEach(activity => {
+                    progressHtml += `
+                        <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; border-left: 3px solid #667eea; background: #f8f9fa; border-radius: 0 6px 6px 0;">
+                            <div style="flex: 1;">
+                                <p style="margin: 0; font-weight: 500;">${activity.activity}</p>
+                                <p style="margin: 0; color: #718096; font-size: 0.85rem;">${activity.time}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                progressHtml += `
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                mainContent.innerHTML = progressHtml;
+                
+                // Update active nav state
+                document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+                document.querySelector('button[onclick="showProgress()"]').classList.add('active');
+                
+            } catch (error) {
+                mainContent.innerHTML = `<div class="jac-error">Failed to load progress data: ${error.message}</div>`;
+            }
         }
 
         function showLoginModal() {
