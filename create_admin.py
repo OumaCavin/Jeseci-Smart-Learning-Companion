@@ -10,7 +10,7 @@ import hashlib
 from datetime import datetime
 from sqlalchemy.orm import Session
 from config.database import SessionLocal
-from database.models.sqlite_models import User, UserProfile, UserRole, Role
+from database.models.sqlite_models import User
 
 def create_admin_user():
     """Create a default admin user for the platform"""
@@ -34,12 +34,16 @@ def create_admin_user():
             print("🔑 Password:", admin_password)
             return existing_admin
         
-        # Create admin user
+        # Create admin user with profile information
         admin_user = User(
             email=admin_email,
             username=admin_username,
-            hashed_password=hashlib.sha256(admin_password.encode()).hexdigest(),
-            email_verified=True,
+            password_hash=hashlib.sha256(admin_password.encode()).hexdigest(),
+            first_name=admin_first_name,
+            last_name=admin_last_name,
+            bio="System Administrator",
+            preferred_language="en",
+            is_verified=True,
             is_active=True,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
@@ -47,42 +51,6 @@ def create_admin_user():
         
         db.add(admin_user)
         db.flush()  # Get the user ID
-        
-        # Create admin profile
-        admin_profile = UserProfile(
-            user_id=admin_user.user_id,
-            first_name=admin_first_name,
-            last_name=admin_last_name,
-            bio="System Administrator",
-            timezone="UTC",
-            preferred_language="en",
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
-        )
-        
-        db.add(admin_profile)
-        
-        # Get or create admin role
-        admin_role = db.query(Role).filter(Role.name == "admin").first()
-        if not admin_role:
-            admin_role = Role(
-                name="admin",
-                description="System Administrator",
-                is_system_role=True,
-                created_at=datetime.utcnow()
-            )
-            db.add(admin_role)
-            db.flush()
-        
-        # Assign admin role to user
-        user_role = UserRole(
-            user_id=admin_user.user_id,
-            role_id=admin_role.role_id,
-            assigned_at=datetime.utcnow(),
-            is_active=True
-        )
-        
-        db.add(user_role)
         db.commit()
         
         print("✅ Admin user created successfully!")
@@ -90,9 +58,7 @@ def create_admin_user():
         print("🔑 Password:", admin_password)
         print("👤 Username:", admin_username)
         print("🆔 User ID:", admin_user.user_id)
-        
-        # Create learning progress record for admin
-        print("\n📚 Setting up admin learning profile...")
+        print("👤 Full Name:", f"{admin_first_name} {admin_last_name}")
         
         return admin_user
         
@@ -126,12 +92,16 @@ def create_additional_admin():
             print(f"⚠️  User already exists: {admin_email} / {admin_username}")
             return existing_user
         
-        # Create user
+        # Create user with profile information
         user = User(
             email=admin_email,
             username=admin_username,
-            hashed_password=hashlib.sha256(admin_password.encode()).hexdigest(),
-            email_verified=True,
+            password_hash=hashlib.sha256(admin_password.encode()).hexdigest(),
+            first_name=admin_first_name,
+            last_name=admin_last_name,
+            bio="System Administrator",
+            preferred_language="en",
+            is_verified=True,
             is_active=True,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
@@ -139,42 +109,6 @@ def create_additional_admin():
         
         db.add(user)
         db.flush()
-        
-        # Create profile
-        profile = UserProfile(
-            user_id=user.user_id,
-            first_name=admin_first_name,
-            last_name=admin_last_name,
-            bio="System Administrator",
-            timezone="UTC",
-            preferred_language="en",
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
-        )
-        
-        db.add(profile)
-        
-        # Get or create admin role
-        admin_role = db.query(Role).filter(Role.name == "admin").first()
-        if not admin_role:
-            admin_role = Role(
-                name="admin",
-                description="System Administrator",
-                is_system_role=True,
-                created_at=datetime.utcnow()
-            )
-            db.add(admin_role)
-            db.flush()
-        
-        # Assign role
-        user_role = UserRole(
-            user_id=user.user_id,
-            role_id=admin_role.role_id,
-            assigned_at=datetime.utcnow(),
-            is_active=True
-        )
-        
-        db.add(user_role)
         db.commit()
         
         print("✅ Additional admin user created successfully!")
@@ -182,6 +116,7 @@ def create_additional_admin():
         print("🔑 Password:", admin_password)
         print("👤 Username:", admin_username)
         print("🆔 User ID:", user.user_id)
+        print("👤 Full Name:", f"{admin_first_name} {admin_last_name}")
         
         return user
         
@@ -200,10 +135,11 @@ def list_admin_users():
         print("\n👥 Current Admin Users:")
         print("=" * 50)
         
-        # Query admin users
-        admin_users = db.query(User).join(UserRole).join(Role).filter(
-            Role.name == "admin",
-            UserRole.is_active == True
+        # Query admin users by email or username pattern
+        admin_users = db.query(User).filter(
+            (User.email.like('%admin%')) | 
+            (User.username.like('%admin%')) |
+            (User.bio.like('%Administrator%'))
         ).all()
         
         if not admin_users:
@@ -211,15 +147,17 @@ def list_admin_users():
             return
         
         for user in admin_users:
-            profile = db.query(UserProfile).filter(UserProfile.user_id == user.user_id).first()
-            full_name = f"{profile.first_name} {profile.last_name}" if profile else "Unknown"
+            full_name = f"{user.first_name or ''} {user.last_name or ''}".strip() or "Unknown"
             
             print(f"🆔 ID: {user.user_id}")
             print(f"👤 Name: {full_name}")
             print(f"📧 Email: {user.email}")
             print(f"📱 Username: {user.username}")
             print(f"✅ Active: {'Yes' if user.is_active else 'No'}")
+            print(f"🔐 Verified: {'Yes' if user.is_verified else 'No'}")
             print(f"📅 Created: {user.created_at}")
+            if user.bio:
+                print(f"📝 Bio: {user.bio}")
             print("-" * 30)
             
     except Exception as e:
