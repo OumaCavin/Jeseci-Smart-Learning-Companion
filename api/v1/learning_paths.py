@@ -10,7 +10,7 @@ from sqlalchemy import func
 
 from api.v1.auth import get_current_user
 from config.database import get_db, get_neo4j_driver
-from database.models import User, LearningPath, LearningSession, Concept, UserConceptProgress
+from database.models import User, LearningPath, LearningSession, Concept, UserConceptProgress, LearningPathConcept
 
 
 # Router instance
@@ -269,3 +269,118 @@ async def complete_learning_session(
         "status": "completed",
         "completed_at": "2025-12-14T07:55:08Z"
     }
+
+
+def transform_learning_path_to_api_format(learning_path: LearningPath, user_id: str, db: Session) -> Dict[str, Any]:
+    """
+    Transform LearningPath database model to API format.
+    
+    This function resolves the frontend/backend inconsistency by converting:
+    - Database 'name' -> API 'title'
+    - Database 'difficulty_level' -> API 'difficulty'
+    """
+    
+    # Get concept count for this path
+    concept_count = db.query(LearningPathConcept).filter(
+        LearningPathConcept.path_id == learning_path.path_id
+    ).count()
+    
+    # Calculate user progress for this path
+    user_progress = db.query(UserConceptProgress).filter(
+        UserConceptProgress.user_id == user_id,
+        UserConceptProgress.concept_id.in_(
+            db.query(LearningPathConcept.concept_id).filter(
+                LearningPathConcept.path_id == learning_path.path_id
+            ).subquery()
+        )
+    ).all()
+    
+    completed_concepts = sum(1 for p in user_progress if p.status == 'completed')
+    progress_percent = round((completed_concepts / concept_count * 100) if concept_count > 0 else 0)
+    
+    return {
+        "id": learning_path.path_id,
+        "title": learning_path.name,  # Transform: name -> title
+        "description": learning_path.description,
+        "difficulty": learning_path.difficulty_level,  # Transform: difficulty_level -> difficulty
+        "category": learning_path.category,
+        "duration": f"{max(1, concept_count // 2)} weeks",
+        "concepts_count": concept_count,
+        "progress": progress_percent,
+        "estimated_hours": concept_count * 3,
+        "is_public": learning_path.is_public,
+        "is_ai_generated": learning_path.is_ai_generated,
+        "adaptive": learning_path.adaptive,
+        "created_at": learning_path.created_at.isoformat() if learning_path.created_at else None,
+        "version": learning_path.version
+    }
+
+
+@router.get("/database")
+async def get_learning_paths_from_database(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get learning paths from the actual database with API transformation.
+    
+    This endpoint resolves the frontend/backend inconsistency by transforming:
+    - Database 'name' -> Frontend 'title'
+    - Database 'difficulty_level' -> Frontend 'difficulty'
+    
+    Use this endpoint instead of the dynamic generation for consistent data.
+    """
+    
+    # Fetch actual learning paths from database
+    learning_paths = db.query(LearningPath).all()
+    
+    if not learning_paths:
+        return {
+            "paths": [],
+            "message": "No learning paths found in database. Run seed_graph_paths_simple.py to populate.",
+            "count": 0
+        }
+    
+    # Transform each path to API format
+    transformed_paths = []
+    for path in learning_paths:
+        api_path = transform_learning_path_to_api_format(path, current_user.user_id, db)
+        transformed_paths.append(api_path)
+    
+    return {
+        "paths": transformed_paths,
+        "message": f"Retrieved {len(transformed_paths)} learning paths from database",
+        "count": len(transformed_paths),
+        "transformation_applied": {
+            "database_to_api": {
+                "name": "title",
+                "difficulty_level": "difficulty"
+            }
+        }
+    }
+
+
+@router.get("/database/{path_id}")
+async def get_learning_path_by_id(
+    path_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get a specific learning path by ID from the database with API transformation.
+    """
+    
+    learning_path = db.query(LearningPath).filter(
+        LearningPath.path_id == path_id
+    ).first()
+    
+    if not learning_path:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Learning path with ID {path_id} not found"
+        )
+    
+    # Transform to API format
+    api_path = transform_learning_path_to_api_format(learning_path, current_user.user_id, db)
+    
+    return api_path
