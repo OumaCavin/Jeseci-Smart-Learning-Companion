@@ -44,24 +44,27 @@ def check_status():
 
     headers = {"Authorization": f"Bearer {token}"}
 
-    # 3. Knowledge Base (Concepts) - 🛠️ FIXED HERE
+    # 3. Knowledge Base (Concepts)
     print("\n3️⃣  Knowledge Base Status")
     try:
         c_resp = requests.get(f"{API_URL}/concepts/", headers=headers)
-        c_data = c_resp.json()
-        
-        # Handle List vs Dict
-        if isinstance(c_data, list):
-            count = len(c_data)
-        elif isinstance(c_data, dict):
-            count = len(c_data.get('data', []))
-        else:
-            count = 0
+        if c_resp.status_code == 200:
+            c_data = c_resp.json()
             
-        if count > 0:
-            print(f"   ✅ Concepts found: {count}")
+            # Robust check for List vs Dict responses
+            if isinstance(c_data, list):
+                count = len(c_data)
+            elif isinstance(c_data, dict):
+                count = len(c_data.get('data', []))
+            else:
+                count = 0
+                
+            if count > 0:
+                print(f"   ✅ Concepts found: {count}")
+            else:
+                print("   ⚠️  No concepts found (Database is empty)")
         else:
-            print("   ⚠️  No concepts found (Database is empty)")
+            print(f"   ❌ API Error: {c_resp.status_code} - {c_resp.text}")
     except Exception as e:
         print(f"   ❌ Concepts check failed: {e}")
 
@@ -78,9 +81,26 @@ def check_status():
             print(f"      • Time spent: {stats.get('total_time_spent', 0)} hours")
             print(f"      • Completion rate: {stats.get('completion_rate', 0)}%")
         else:
-            print(f"   ❌ Progress API error: {p_resp.status_code}")
+            print(f"   ❌ Progress API error: {p_resp.status_code} (Likely DB Schema Mismatch)")
     except Exception as e:
         print(f"   ❌ Progress check failed: {e}")
+
+    # 5. Learning Paths (Added back)
+    print("\n5️⃣  Learning Paths Status")
+    try:
+        # Note: Adjust URL if your router prefix is different (e.g. /learning-paths vs /learning-paths/)
+        lp_resp = requests.get(f"{API_URL}/learning-paths/", headers=headers) 
+        if lp_resp.status_code == 200:
+            lp_data = lp_resp.json()
+            print(f"   ✅ {len(lp_data)} learning paths found")
+            if len(lp_data) > 0:
+                print("   🛤️  Sample paths:")
+                for path in lp_data[:3]:
+                    print(f"      • {path.get('title')} ({path.get('difficulty')}) - {path.get('progress')}% complete")
+        else:
+            print(f"   ⚠️  Learning Paths endpoint returned {lp_resp.status_code}")
+    except Exception as e:
+        print(f"   ❌ Learning Paths check failed: {e}")
 
     print("\n==================================================")
 
