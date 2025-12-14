@@ -23,95 +23,85 @@ async def get_learning_paths(
     db: Session = Depends(get_db)
 ):
     """
-    Get available learning paths.
-    Currently generates paths dynamically based on Concept Domains.
+    Get learning paths from database with accurate progress calculation.
+    
+    Uses LearningPathConcept association table for precise concept matching
+    and correct field mapping for frontend compatibility.
     """
     
-    # 1. Group Concepts by Domain (e.g., "Computer Science", "Web Development")
-    concepts = db.query(Concept).all()
-    domains = {}
+    # 1. Fetch all learning paths from database
+    learning_paths = db.query(LearningPath).all()
     
-    for c in concepts:
-        if c.domain not in domains:
-            domains[c.domain] = []
-        domains[c.domain].append(c)
-        
-    # 2. Construct Learning Path Objects
-    paths = []
-    path_id_counter = 1
+    if not learning_paths:
+        return []
     
-    for domain, domain_concepts in domains.items():
-        # Calculate stats for this path
-        total_concepts = len(domain_concepts)
+    # 2. Pre-fetch user progress to avoid N+1 queries
+    user_progress_records = db.query(UserConceptProgress).filter(
+        UserConceptProgress.user_id == current_user.user_id,
+        UserConceptProgress.status == "completed"
+    ).all()
+    
+    # Set of completed concept IDs for fast lookup
+    completed_concept_ids = {p.concept_id for p in user_progress_records}
+    
+    # 3. Pre-fetch all learning path concepts to avoid multiple queries
+    path_concept_relations = db.query(LearningPathConcept).all()
+    
+    # Build a mapping: path_id -> [concept_ids]
+    path_to_concepts = {}
+    for relation in path_concept_relations:
+        if relation.path_id not in path_to_concepts:
+            path_to_concepts[relation.path_id] = []
+        path_to_concepts[relation.path_id].append(relation.concept_id)
+    
+    # 4. Build response with accurate progress calculation
+    response_data = []
+    
+    for path in learning_paths:
+        # Get the actual concepts for this path from the association table
+        path_concept_ids = path_to_concepts.get(path.path_id, [])
         
-        # Calculate average difficulty level
-        difficulty_scores = {
-            "beginner": 1,
-            "intermediate": 2, 
-            "advanced": 3
-        }
-        avg_difficulty_score = sum(difficulty_scores.get(c.difficulty_level.lower(), 2) for c in domain_concepts) / len(domain_concepts)
-        
-        if avg_difficulty_score <= 1.5:
-            difficulty = "Beginner"
-        elif avg_difficulty_score <= 2.5:
-            difficulty = "Intermediate"
+        if not path_concept_ids:
+            # No concepts assigned to this path yet
+            progress_percent = 0
+            total_concepts = 0
+            completed_count = 0
         else:
-            difficulty = "Advanced"
+            # Fetch the actual concepts for this path
+            path_concepts = db.query(Concept).filter(
+                Concept.concept_id.in_(path_concept_ids)
+            ).all()
             
-        estimated_hours = total_concepts * 3  # Assume 3 hours per concept
+            total_concepts = len(path_concepts)
+            completed_count = sum(
+                1 for concept in path_concepts 
+                if concept.concept_id in completed_concept_ids
+            )
+            
+            progress_percent = round((completed_count / total_concepts) * 100) if total_concepts > 0 else 0
         
-        # Calculate progress for this domain
-        user_progress = db.query(UserConceptProgress).filter(
-            UserConceptProgress.user_id == current_user.user_id,
-            UserConceptProgress.concept_id.in_([c.concept_id for c in domain_concepts])
-        ).all()
-        
-        completed_in_domain = sum(1 for p in user_progress if p.status == 'completed')
-        progress_percent = round((completed_in_domain / total_concepts * 100) if total_concepts > 0 else 0)
-        
-        # Create Path Object
-        paths.append({
-            "id": path_id_counter,
-            "title": f"Mastering {domain}",
-            "description": f"A comprehensive journey through {domain} fundamentals and advanced concepts.",
-            "difficulty": difficulty,
-            "duration": f"{max(1, total_concepts // 2)} weeks",
+        # 5. Transform to frontend format (using correct field names)
+        response_data.append({
+            "id": path.path_id,                    # ✅ Correct field name
+            "title": path.name,                    # ✅ Correct field name  
+            "description": path.description,
+            "difficulty": path.difficulty_level,   # ✅ This is correct
+            "category": path.category,
+            "estimated_hours": path.estimated_hours,
+            "duration": f"{max(1, total_concepts // 2)} weeks",  # Dynamic based on concepts
+            
+            # Accurate progress data
             "concepts_count": total_concepts,
             "progress": progress_percent,
-            "estimated_hours": estimated_hours,
-            "category": domain
+            "completed_concepts": completed_count,
+            
+            # Additional metadata
+            "is_public": path.is_public,
+            "adaptive": path.adaptive,
+            "created_at": path.created_at.isoformat() if path.created_at else None
         })
-        path_id_counter += 1
-    
-    # 3. Add some default paths if no concepts exist
-    if not paths:
-        paths = [
-            {
-                "id": 1,
-                "title": "Programming Fundamentals",
-                "description": "Start your programming journey with core concepts.",
-                "difficulty": "Beginner",
-                "duration": "4 weeks",
-                "concepts_count": 5,
-                "progress": 0,
-                "estimated_hours": 15,
-                "category": "Programming"
-            },
-            {
-                "id": 2,
-                "title": "Web Development Basics", 
-                "description": "Learn to build modern web applications.",
-                "difficulty": "Beginner",
-                "duration": "6 weeks",
-                "concepts_count": 8,
-                "progress": 0,
-                "estimated_hours": 24,
-                "category": "Web Development"
-            }
-        ]
         
-    return paths
+    return response_data
 
 
 @router.get("/recommendations")
@@ -384,3 +374,121 @@ async def get_learning_path_by_id(
     api_path = transform_learning_path_to_api_format(learning_path, current_user.user_id, db)
     
     return api_path
+
+
+@router.get("/detailed-progress")
+async def get_learning_paths_detailed_progress(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Enhanced version with detailed progress breakdown.
+    
+    Shows individual concept completion status and comprehensive analytics.
+    Use this endpoint when you need detailed progress information for UI features
+    like progress bars, concept status indicators, and time tracking.
+    """
+    
+    learning_paths = db.query(LearningPath).all()
+    response_data = []
+    
+    # Get all user progress with detailed status
+    user_progress_records = db.query(UserConceptProgress).filter(
+        UserConceptProgress.user_id == current_user.user_id
+    ).all()
+    
+    # Build progress lookup: concept_id -> progress record
+    concept_progress_map = {p.concept_id: p for p in user_progress_records}
+    
+    # Get all path-concept relationships
+    path_concept_relations = db.query(LearningPathConcept).all()
+    
+    # Build path concept mapping
+    path_to_concepts = {}
+    for relation in path_concept_relations:
+        if relation.path_id not in path_to_concepts:
+            path_to_concepts[relation.path_id] = []
+        path_to_concepts[relation.path_id].append(relation.concept_id)
+    
+    for path in learning_paths:
+        path_concept_ids = path_to_concepts.get(path.path_id, [])
+        
+        if not path_concept_ids:
+            continue
+            
+        # Get concepts with their progress status
+        concepts = db.query(Concept).filter(
+            Concept.concept_id.in_(path_concept_ids)
+        ).all()
+        
+        # Build concept progress breakdown
+        concept_progress = []
+        for concept in concepts:
+            progress_record = concept_progress_map.get(concept.concept_id)
+            
+            concept_progress.append({
+                "concept_id": concept.concept_id,
+                "name": concept.name,
+                "display_name": concept.display_name,
+                "status": progress_record.status if progress_record else "not_started",
+                "progress_percent": progress_record.progress_percent if progress_record else 0,
+                "time_spent": progress_record.time_spent if progress_record else 0,
+                "last_accessed": progress_record.last_accessed.isoformat() if progress_record and progress_record.last_accessed else None,
+                "difficulty_level": concept.difficulty_level,
+                "estimated_duration": concept.estimated_duration
+            })
+        
+        # Calculate overall statistics
+        total_concepts = len(concepts)
+        completed_concepts = sum(1 for cp in concept_progress if cp["status"] == "completed")
+        in_progress_concepts = sum(1 for cp in concept_progress if cp["status"] == "in_progress")
+        not_started_concepts = sum(1 for cp in concept_progress if cp["status"] == "not_started")
+        
+        # Calculate total time spent
+        total_time_spent = sum(cp["time_spent"] for cp in concept_progress)
+        
+        # Calculate average progress
+        avg_progress = sum(cp["progress_percent"] for cp in concept_progress) / total_concepts if total_concepts > 0 else 0
+        
+        overall_progress = round((completed_concepts / total_concepts) * 100) if total_concepts > 0 else 0
+        
+        response_data.append({
+            "id": path.path_id,
+            "title": path.name,
+            "description": path.description,
+            "difficulty": path.difficulty_level,
+            "category": path.category,
+            
+            # Progress summary
+            "concepts_count": total_concepts,
+            "progress": overall_progress,
+            "average_progress": round(avg_progress),
+            "completed_concepts": completed_concepts,
+            "in_progress_concepts": in_progress_concepts,
+            "not_started_concepts": not_started_concepts,
+            
+            # Time analytics
+            "total_time_spent": total_time_spent,
+            "estimated_hours": path.estimated_hours,
+            "time_efficiency": round((total_time_spent / path.estimated_hours * 100) if path.estimated_hours > 0 else 0),
+            
+            # Detailed concept breakdown
+            "concept_progress": concept_progress,
+            
+            # Metadata
+            "adaptive": path.adaptive,
+            "is_public": path.is_public,
+            "is_ai_generated": path.is_ai_generated,
+            "created_at": path.created_at.isoformat() if path.created_at else None,
+            "version": path.version
+        })
+    
+    return {
+        "paths": response_data,
+        "summary": {
+            "total_paths": len(response_data),
+            "total_concepts": sum(p["concepts_count"] for p in response_data),
+            "total_completed": sum(p["completed_concepts"] for p in response_data),
+            "overall_progress": round(sum(p["progress"] for p in response_data) / len(response_data)) if response_data else 0
+        }
+    }
