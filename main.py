@@ -17,7 +17,7 @@ from config.database import (
     get_db, get_redis_connection, get_neo4j_driver
 )
 from api.v1 import (
-    auth, users, concepts, learning_paths, progress, 
+    auth, users, concepts, content, learning_paths, progress, 
     quizzes, achievements, analytics
 )
 
@@ -115,6 +115,12 @@ app.include_router(
 )
 
 app.include_router(
+    content.router,
+    prefix=f"{api_prefix}/content",
+    tags=["Educational Content"]
+)
+
+app.include_router(
     learning_paths.router,
     prefix=f"{api_prefix}/learning-paths",
     tags=["Learning Paths"]
@@ -195,6 +201,7 @@ async def api_info():
             "authentication": f"{api_prefix}/auth",
             "users": f"{api_prefix}/users",
             "concepts": f"{api_prefix}/concepts",
+            "educational_content": f"{api_prefix}/content",
             "learning_paths": f"{api_prefix}/learning-paths",
             "progress": f"{api_prefix}/progress",
             "quizzes": f"{api_prefix}/quizzes",

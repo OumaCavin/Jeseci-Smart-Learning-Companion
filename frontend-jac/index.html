@@ -11,6 +11,195 @@
             min-height: 100vh;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
+
+        /* Content Display Styles */
+        .content-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            display: none;
+            overflow-y: auto;
+        }
+
+        .content-modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .content-container {
+            background: white;
+            border-radius: 15px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        .content-header {
+            padding: 2rem;
+            border-bottom: 1px solid #e2e8f0;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+
+        .content-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .content-meta {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .content-body {
+            padding: 2rem;
+        }
+
+        .learning-objectives {
+            background: #f7fafc;
+            border-left: 4px solid #667eea;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .learning-objectives h4 {
+            margin: 0 0 0.5rem 0;
+            color: #2d3748;
+            font-size: 1rem;
+        }
+
+        .learning-objectives ul {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+
+        .learning-objectives li {
+            margin-bottom: 0.3rem;
+            color: #4a5568;
+        }
+
+        .content-text {
+            line-height: 1.7;
+            color: #2d3748;
+        }
+
+        .content-text h1, .content-text h2, .content-text h3 {
+            color: #2d3748;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .content-text h1 { font-size: 1.8rem; }
+        .content-text h2 { font-size: 1.5rem; }
+        .content-text h3 { font-size: 1.3rem; }
+
+        .content-text p {
+            margin-bottom: 1rem;
+        }
+
+        .content-text code {
+            background: #f7fafc;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        .content-text pre {
+            background: #f7fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            border: 1px solid #e2e8f0;
+        }
+
+        .content-text pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .content-footer {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #e2e8f0;
+            background: #f7fafc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 0 0 15px 15px;
+        }
+
+        .progress-info {
+            font-size: 0.9rem;
+            color: #4a5568;
+        }
+
+        .content-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #667eea;
+            border: 1px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .loading-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem;
+            color: #4a5568;
+        }
+
+        .no-content {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #4a5568;
+        }
+
+        .no-content h3 {
+            margin-bottom: 1rem;
+            color: #2d3748;
+        }
         
         .jac-loading {
             display: flex;
@@ -593,7 +782,7 @@
                                 </div>
                                 <h3 style="margin: 1rem 0;">${concept.display_name}</h3>
                                 <p style="color: #4a5568; font-size: 0.9rem; margin-bottom: 1rem;">${concept.description}</p>
-                                <button class="cta-btn secondary" style="width: 100%;" onclick="alert('Learning Path for ${concept.name} coming soon!')">Start Learning</button>
+                                <button class="cta-btn secondary" style="width: 100%;" onclick="startLearningConcept('${concept.concept_id}', '${concept.display_name}')">Start Learning</button>
                             </div>
                         `;
                     });
@@ -1084,6 +1273,286 @@
                 updateUIForLoggedInUser(user);
             }
         });
+
+        // Educational Content Functions
+        
+        // Start learning a concept
+        async function startLearningConcept(conceptId, conceptName) {
+            try {
+                const response = await fetch(`/api/v1/content/start-learning/${conceptId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${window.JAC_STORAGE.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Open content modal with the first piece of content
+                openContentModal(data.content.content_id, data.content.title);
+                
+            } catch (error) {
+                console.error('Error starting learning:', error);
+                showErrorMessage(`Failed to start learning ${conceptName}: ${error.message}`);
+            }
+        }
+
+        // Open content modal and load content
+        async function openContentModal(contentId, title = 'Learning Content') {
+            const modal = document.getElementById('content-modal');
+            const titleElement = document.getElementById('content-modal-title');
+            const metaElement = document.getElementById('content-modal-meta');
+            const bodyElement = document.getElementById('content-modal-body');
+            const footerElement = document.getElementById('content-modal-footer');
+
+            // Show modal and loading state
+            modal.classList.add('active');
+            titleElement.textContent = title;
+            metaElement.textContent = 'Loading educational content...';
+            bodyElement.innerHTML = `
+                <div class="loading-content">
+                    <div class="loading-spinner"></div>
+                    <span>Loading educational content...</span>
+                </div>
+            `;
+            footerElement.style.display = 'none';
+
+            try {
+                // Load content from API
+                const contentResponse = await fetch(`/api/v1/content/content/${contentId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${window.JAC_STORAGE.getItem('token')}`
+                    }
+                });
+
+                if (!contentResponse.ok) {
+                    throw new Error(`HTTP error! status: ${contentResponse.status}`);
+                }
+
+                const content = await contentResponse.json();
+                
+                // Update modal with content
+                titleElement.textContent = content.title;
+                metaElement.textContent = `${content.content_type.charAt(0).toUpperCase() + content.content_type.slice(1)} • ${content.estimated_duration} min • ${content.difficulty_level}`;
+                
+                // Build content HTML
+                let contentHtml = '';
+                
+                // Add learning objectives if available
+                if (content.learning_objectives && content.learning_objectives.length > 0) {
+                    contentHtml += `
+                        <div class="learning-objectives">
+                            <h4>🎯 Learning Objectives</h4>
+                            <ul>
+                                ${content.learning_objectives.map(obj => `<li>${obj}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+                
+                // Add summary if available
+                if (content.summary) {
+                    contentHtml += `<p style="font-style: italic; color: #4a5568; margin-bottom: 1.5rem;"><strong>Summary:</strong> ${content.summary}</p>`;
+                }
+                
+                // Add main content
+                contentHtml += `<div class="content-text">${formatContent(content.content)}</div>`;
+                
+                // Add practice questions if available
+                if (content.practice_questions && content.practice_questions.length > 0) {
+                    contentHtml += `
+                        <div style="margin-top: 2rem; padding: 1rem; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+                            <h4 style="margin: 0 0 1rem 0; color: #856404;">💭 Practice Questions</h4>
+                            ${content.practice_questions.map(q => `
+                                <div style="margin-bottom: 1rem;">
+                                    <strong>Q: ${q.question}</strong><br>
+                                    <em style="color: #6c757d;">A: ${q.answer}</em>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                
+                bodyElement.innerHTML = contentHtml;
+                
+                // Update progress information
+                await updateContentProgress(contentId);
+                
+                // Show footer with actions
+                footerElement.style.display = 'flex';
+                
+                // Update progress info
+                const progressResponse = await fetch(`/api/v1/content/content/${contentId}/progress`, {
+                    headers: {
+                        'Authorization': `Bearer ${window.JAC_STORAGE.getItem('token')}`
+                    }
+                });
+                
+                if (progressResponse.ok) {
+                    const progress = await progressResponse.json();
+                    const progressInfo = document.getElementById('progress-info');
+                    progressInfo.innerHTML = `
+                        <strong>Progress:</strong> ${Math.round(progress.progress_percent)}% 
+                        • <strong>Time Spent:</strong> ${progress.time_spent} min
+                        • <strong>Status:</strong> ${progress.status.replace('_', ' ').toUpperCase()}
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Error loading content:', error);
+                bodyElement.innerHTML = `
+                    <div class="no-content">
+                        <h3>⚠️ Unable to Load Content</h3>
+                        <p>Sorry, we couldn't load the educational content. Please try again later.</p>
+                        <p style="color: #e53e3e; font-size: 0.9rem;">Error: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Close content modal
+        function closeContentModal() {
+            const modal = document.getElementById('content-modal');
+            modal.classList.remove('active');
+        }
+
+        // Format content text (basic markdown-like formatting)
+        function formatContent(content) {
+            // Convert headers
+            content = content.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+            content = content.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+            content = content.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+            
+            // Convert bold text
+            content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // Convert italic text
+            content = content.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            
+            // Convert code blocks
+            content = content.replace(/```(\w+)?\n([\s\S]*?)\n```/g, '<pre><code>$2</code></pre>');
+            
+            // Convert inline code
+            content = content.replace(/`([^`]+)`/g, '<code>$1</code>');
+            
+            // Convert line breaks to paragraphs
+            const paragraphs = content.split('\n\n').filter(p => p.trim());
+            content = paragraphs.map(p => {
+                if (p.startsWith('<h') || p.startsWith('<pre>')) {
+                    return p;
+                }
+                return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+            }).join('');
+            
+            return content;
+        }
+
+        // Update content progress
+        async function updateContentProgress(contentId) {
+            try {
+                await fetch(`/api/v1/content/content/${contentId}/progress`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${window.JAC_STORAGE.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        status: 'in_progress',
+                        progress_percent: 10 // Mark as started
+                    })
+                });
+            } catch (error) {
+                console.error('Error updating progress:', error);
+            }
+        }
+
+        // Load next content
+        async function loadNextContent() {
+            const currentTitle = document.getElementById('content-modal-title').textContent;
+            
+            try {
+                // For now, just show a message. In a full implementation,
+                // you would query the API for the next content in sequence
+                showSuccessMessage('🎉 Congratulations! You\'ve completed this content piece.');
+                closeContentModal();
+                
+                // Refresh dashboard to update progress
+                loadDashboardData();
+                
+            } catch (error) {
+                console.error('Error loading next content:', error);
+                showErrorMessage('Failed to load next content. Please try again.');
+            }
+        }
+
+        // Show success message
+        function showSuccessMessage(message) {
+            const successDiv = document.createElement('div');
+            successDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #48bb78;
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+                z-index: 3000;
+                animation: slideInRight 0.3s ease;
+            `;
+            successDiv.textContent = message;
+            
+            document.body.appendChild(successDiv);
+            
+            setTimeout(() => {
+                successDiv.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => successDiv.remove(), 300);
+            }, 3000);
+        }
+
+        // Show error message
+        function showErrorMessage(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #e53e3e;
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(229, 62, 62, 0.3);
+                z-index: 3000;
+                animation: slideInRight 0.3s ease;
+            `;
+            errorDiv.textContent = message;
+            
+            document.body.appendChild(errorDiv);
+            
+            setTimeout(() => {
+                errorDiv.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => errorDiv.remove(), 300);
+            }, 4000);
+        }
+
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOutRight {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>

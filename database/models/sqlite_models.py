@@ -384,3 +384,101 @@ class UserConceptProgress(Base):
     __table_args__ = (
         Index('idx_concept_progress_unique', 'user_id', 'concept_id', unique=True),
     )
+
+
+class ConceptContent(Base):
+    """Educational content for concepts - lessons, exercises, and reading materials"""
+    __tablename__ = "concept_content"
+    
+    content_id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    concept_id = Column(String(36), ForeignKey("concepts.concept_id"), nullable=False)
+    
+    # Content metadata
+    title = Column(String(200), nullable=False)
+    content_type = Column(String(50), nullable=False)  # lesson, exercise, reading, quiz, video, interactive
+    order_index = Column(Integer, default=0)  # Order within the concept
+    
+    # Content body
+    content = Column(Text, nullable=False)  # Main content in markdown/HTML
+    summary = Column(Text, nullable=True)   # Brief summary
+    learning_objectives = Column(JSON, default=list)  # Specific objectives for this content
+    
+    # Media and resources
+    multimedia_resources = Column(JSON, default=list)  # Images, videos, audio files
+    external_links = Column(JSON, default=list)        # Additional resources
+    code_examples = Column(JSON, default=list)         # Programming examples
+    interactive_elements = Column(JSON, default=list)  # Interactive components
+    
+    # Difficulty and prerequisites
+    difficulty_level = Column(String(20), nullable=False)
+    estimated_duration = Column(Integer, default=30)  # Duration in minutes
+    prerequisites = Column(JSON, default=list)        # Required prior knowledge
+    
+    # Assessment and practice
+    practice_questions = Column(JSON, default=list)   # Practice problems
+    examples = Column(JSON, default=list)             # Worked examples
+    exercises = Column(JSON, default=list)            # Hands-on exercises
+    
+    # Analytics
+    completion_rate = Column(Float, default=0.0)
+    average_score = Column(Float, default=0.0)
+    engagement_score = Column(Float, default=0.0)
+    completion_time = Column(Integer, default=0)      # Average completion time in minutes
+    
+    # Content quality and versioning
+    content_quality_score = Column(Float, default=0.0)
+    version = Column(String(20), default="1.0")
+    is_active = Column(Boolean, default=True)
+    ai_generated = Column(Boolean, default=False)
+    
+    # Author and timestamps
+    author = Column(String(100), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Indexes
+    __table_args__ = (
+        Index('idx_content_concept', 'concept_id'),
+        Index('idx_content_type', 'content_type'),
+        Index('idx_content_order', 'concept_id', 'order_index'),
+    )
+
+
+class UserContentProgress(Base):
+    """Track user progress through specific content pieces"""
+    __tablename__ = "user_content_progress"
+    
+    progress_id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.user_id"), nullable=False)
+    content_id = Column(String(36), ForeignKey("concept_content.content_id"), nullable=False)
+    
+    # Progress tracking
+    status = Column(String(20), default="not_started")  # not_started, in_progress, completed, mastered
+    progress_percent = Column(Float, default=0.0)
+    time_spent = Column(Integer, default=0)  # Time spent in minutes
+    
+    # Performance metrics
+    score = Column(Float, nullable=True)      # Score achieved (if applicable)
+    attempts = Column(Integer, default=0)     # Number of attempts
+    best_score = Column(Float, default=0.0)   # Best score achieved
+    
+    # Learning analytics
+    first_accessed = Column(DateTime, default=datetime.utcnow)
+    last_accessed = Column(DateTime, default=datetime.utcnow)
+    last_completed = Column(DateTime, nullable=True)
+    
+    # User interactions
+    notes = Column(Text, nullable=True)       # User's personal notes
+    bookmarks = Column(JSON, default=list)    # Bookmarked sections
+    difficulty_rating = Column(Float, nullable=True)  # User's difficulty rating
+    
+    # Spaced repetition
+    next_review = Column(DateTime, nullable=True)
+    review_count = Column(Integer, default=0)
+    
+    # Indexes
+    __table_args__ = (
+        Index('idx_content_progress_user', 'user_id', 'content_id', unique=True),
+        Index('idx_content_progress_status', 'status'),
+        Index('idx_content_progress_next_review', 'next_review'),
+    )
