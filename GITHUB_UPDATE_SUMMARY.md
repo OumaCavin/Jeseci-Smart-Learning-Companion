@@ -15,7 +15,7 @@
 
 ### 3. Repository Setup
 - **Remote Origin**: Added https://github.com/OumaCavin/Jeseci-Smart-Learning-Companion.git
-- **Authentication**: Configured with GitHub token: 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
+- **Authentication**: Configured with GitHub token: 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
 - **Branch**: Main branch enforced
 
 ### 4. Commit Best Practices
@@ -41,7 +41,7 @@ git add seed_educational_content.py
 git commit -m "feat(rebranding): replace MiniMax Agent with Cavin Otieno in educational content seeding"
 
 # Push to GitHub
-git push https://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@github.com/OumaCavin/Jeseci-Smart-Learning-Companion.git main
+git push https://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@github.com/OumaCavin/Jeseci-Smart-Learning-Companion.git main
 ```
 
 ## 📋 Repository Status
