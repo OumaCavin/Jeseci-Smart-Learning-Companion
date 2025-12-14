@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from api.v1.auth import get_current_user
 from config.database import get_db, get_neo4j_driver
 from database.models import Concept, UserProgress, User
+from services.ai_generator import generate_lesson_content, generate_practice_questions
 
 
 # Pydantic models
@@ -591,3 +592,209 @@ async def create_concept_relationship(
         raise HTTPException(status_code=500, detail="Failed to create graph relationship")
         
     return {"message": f"Successfully created {relation_data.relationship_type} relationship"}
+
+
+# =============================================================================
+# AI-POWERED LESSON GENERATION ENDPOINTS
+# =============================================================================
+
+class LessonGenerationResponse(BaseModel):
+    content: str
+    source: str  # "database" or "ai_generated"
+    generated_at: Optional[str] = None
+    model_used: Optional[str] = None
+
+
+class PracticeQuestionsResponse(BaseModel):
+    questions: List[dict]
+    generated_at: str
+    model_used: str
+
+
+@router.get("/{concept_id}/lesson")
+async def get_concept_lesson(
+    concept_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get lesson content for a concept.
+    
+    - If lesson exists in database -> Return cached content
+    - If no lesson exists -> Generate via AI, save to DB, return new content
+    - Uses concept metadata (difficulty, domain, category) for personalized content
+    """
+    
+    # 1. Fetch concept
+    concept = db.query(Concept).filter(Concept.concept_id == concept_id).first()
+    if not concept:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Concept not found"
+        )
+    
+    # 2. Check cache (existing generated content)
+    if concept.lesson_content:
+        print(f"📚 Returning cached lesson for: {concept.display_name}")
+        return LessonGenerationResponse(
+            content=concept.lesson_content,
+            source="database",
+            generated_at=concept.lesson_generated_at.isoformat() if concept.lesson_generated_at else None,
+            model_used=concept.lesson_model_used
+        )
+    
+    # 3. Generate fresh content using AI
+    print(f"🤖 Generating AI lesson for: {concept.display_name}")
+    
+    try:
+        # Get related concepts for context (optional enhancement)
+        related_concepts = []
+        try:
+            driver = get_neo4j_driver()
+            if driver:
+                with driver.session() as session:
+                    result = session.run("""
+                        MATCH (c:Concept {concept_id: $concept_id})-[:RELATED_TO|PREREQUISITE]->(related:Concept)
+                        RETURN related.name as name
+                        LIMIT 5
+                    """, concept_id=concept_id)
+                    related_concepts = [record["name"] for record in result]
+        except Exception as e:
+            print(f"⚠️  Could not fetch related concepts: {e}")
+        
+        # Generate lesson content
+        generated_content = await generate_lesson_content(
+            concept_name=concept.display_name,
+            domain=concept.domain,
+            difficulty=concept.difficulty_level,
+            related_concepts=related_concepts,
+            category=concept.category,
+            detailed_description=concept.detailed_description
+        )
+        
+        # Save to database (cache for future requests)
+        concept.lesson_content = generated_content
+        concept.lesson_generated_at = datetime.utcnow()
+        concept.lesson_model_used = "gpt-4o-mini"
+        db.commit()
+        
+        print(f"✅ Generated and cached lesson for: {concept.display_name}")
+        
+        return LessonGenerationResponse(
+            content=generated_content,
+            source="ai_generated",
+            generated_at=concept.lesson_generated_at.isoformat(),
+            model_used=concept.lesson_model_used
+        )
+        
+    except Exception as e:
+        print(f"❌ Failed to generate lesson for {concept.display_name}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate lesson content: {str(e)}"
+        )
+
+
+@router.get("/{concept_id}/practice-questions")
+async def get_practice_questions(
+    concept_id: str,
+    question_count: int = 3,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Generate practice questions for a concept using AI
+    """
+    
+    # Fetch concept
+    concept = db.query(Concept).filter(Concept.concept_id == concept_id).first()
+    if not concept:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Concept not found"
+        )
+    
+    try:
+        questions = await generate_practice_questions(
+            concept_name=concept.display_name,
+            difficulty=concept.difficulty_level,
+            question_count=question_count
+        )
+        
+        return PracticeQuestionsResponse(
+            questions=questions,
+            generated_at=datetime.utcnow().isoformat(),
+            model_used="gpt-4o-mini"
+        )
+        
+    except Exception as e:
+        print(f"❌ Failed to generate practice questions for {concept.display_name}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate practice questions: {str(e)}"
+        )
+
+
+@router.post("/{concept_id}/regenerate-lesson")
+async def regenerate_concept_lesson(
+    concept_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Force regenerate lesson content (useful for updates or improvements)
+    """
+    
+    # Fetch concept
+    concept = db.query(Concept).filter(Concept.concept_id == concept_id).first()
+    if not concept:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Concept not found"
+        )
+    
+    try:
+        print(f"🔄 Regenerating lesson for: {concept.display_name}")
+        
+        # Clear existing content
+        concept.lesson_content = None
+        concept.lesson_generated_at = None
+        concept.lesson_model_used = None
+        db.commit()
+        
+        # Generate new content (will be cached automatically)
+        return await get_concept_lesson(concept_id, current_user, db)
+        
+    except Exception as e:
+        print(f"❌ Failed to regenerate lesson for {concept.display_name}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to regenerate lesson content: {str(e)}"
+        )
+
+
+@router.get("/{concept_id}/lesson-status")
+async def get_lesson_status(
+    concept_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Check if lesson content exists and get generation status
+    """
+    
+    concept = db.query(Concept).filter(Concept.concept_id == concept_id).first()
+    if not concept:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Concept not found"
+        )
+    
+    return {
+        "concept_id": concept_id,
+        "concept_name": concept.display_name,
+        "has_lesson": concept.lesson_content is not None,
+        "generated_at": concept.lesson_generated_at.isoformat() if concept.lesson_generated_at else None,
+        "model_used": concept.lesson_model_used,
+        "needs_generation": concept.lesson_content is None
+    }

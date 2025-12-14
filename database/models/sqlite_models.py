@@ -128,6 +128,11 @@ class Concept(Base):
     content_quality_score = Column(Float, default=0.0)
     ai_generated_content = Column(Boolean, default=False)
     
+    # AI-generated lesson content (Just-in-Time Content Generator)
+    lesson_content = Column(Text, nullable=True)  # Stores AI-generated lesson content
+    lesson_generated_at = Column(DateTime, nullable=True)  # When lesson was last generated
+    lesson_model_used = Column(String(50), nullable=True)  # Which AI model was used
+    
     # Versioning and timestamps
     version = Column(String(20), default="1.0")
     created_at = Column(DateTime, default=datetime.utcnow)

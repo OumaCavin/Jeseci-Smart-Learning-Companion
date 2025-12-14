@@ -406,6 +406,36 @@
         </div>
     </div>
 
+    <!-- AI-Powered Lesson Modal -->
+    <div id="ai-lesson-modal" class="content-modal">
+        <div class="content-container">
+            <div class="content-header">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h1 class="content-title" id="ai-lesson-title">🤖 AI-Generated Lesson</h1>
+                        <div class="content-meta" id="ai-lesson-meta">Loading personalized content...</div>
+                    </div>
+                    <button class="close-btn" onclick="closeAILessonModal()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+                </div>
+            </div>
+            <div class="content-body" id="ai-lesson-body">
+                <div class="loading-content">
+                    <div class="loading-spinner"></div>
+                    <span>🤖 AI is generating your personalized lesson...</span>
+                </div>
+            </div>
+            <div class="content-footer" id="ai-lesson-footer" style="display: none;">
+                <div class="progress-info" id="ai-lesson-progress">
+                    <!-- Lesson metadata will be populated here -->
+                </div>
+                <div class="content-actions">
+                    <button class="btn btn-secondary" onclick="closeAILessonModal()">Close</button>
+                    <button class="btn btn-primary" onclick="completeAILesson()">✅ Mark as Complete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- JAC Runtime Integration -->
     <script>
         // JAC Runtime Configuration
@@ -1277,13 +1307,18 @@
         // Educational Content Functions
         
         // Start learning a concept
+        // AI-Powered Lesson Generation Functions
+        
+        // Start learning with AI-generated lesson
         async function startLearningConcept(conceptId, conceptName) {
             try {
-                const response = await fetch(`/api/v1/content/start-learning/${conceptId}`, {
-                    method: 'POST',
+                // Open AI lesson modal with loading state
+                openAILessonModal(conceptId, conceptName);
+                
+                // Fetch AI-generated lesson
+                const response = await fetch(`/api/v1/concepts/${conceptId}/lesson`, {
                     headers: {
-                        'Authorization': `Bearer ${window.JAC_STORAGE.getItem('token')}`,
-                        'Content-Type': 'application/json'
+                        'Authorization': `Bearer ${window.JAC_STORAGE.getItem('token')}`
                     }
                 });
 
@@ -1293,13 +1328,149 @@
 
                 const data = await response.json();
                 
-                // Open content modal with the first piece of content
-                openContentModal(data.content.content_id, data.content.title);
+                // Update modal with generated lesson content
+                displayAILesson(data.content, data.source, conceptName);
                 
             } catch (error) {
-                console.error('Error starting learning:', error);
-                showErrorMessage(`Failed to start learning ${conceptName}: ${error.message}`);
+                console.error('Error generating AI lesson:', error);
+                showErrorMessage(`Failed to generate lesson for ${conceptName}: ${error.message}`);
+                
+                // Close modal on error
+                closeAILessonModal();
             }
+        }
+
+        // Open AI lesson modal
+        function openAILessonModal(conceptId, conceptName) {
+            const modal = document.getElementById('ai-lesson-modal');
+            const titleElement = document.getElementById('ai-lesson-title');
+            const metaElement = document.getElementById('ai-lesson-meta');
+            const bodyElement = document.getElementById('ai-lesson-body');
+            const footerElement = document.getElementById('ai-lesson-footer');
+
+            // Show modal and loading state
+            modal.classList.add('active');
+            titleElement.textContent = `🤖 AI Lesson: ${conceptName}`;
+            metaElement.textContent = 'Generating personalized educational content...';
+            bodyElement.innerHTML = `
+                <div class="loading-content">
+                    <div class="loading-spinner"></div>
+                    <span>🤖 AI is crafting your personalized lesson...</span>
+                </div>
+            `;
+            footerElement.style.display = 'none';
+
+            // Store concept ID for completion tracking
+            window.currentAILessonConceptId = conceptId;
+        }
+
+        // Display the generated lesson content
+        function displayAILesson(content, source, conceptName) {
+            const titleElement = document.getElementById('ai-lesson-title');
+            const metaElement = document.getElementById('ai-lesson-meta');
+            const bodyElement = document.getElementById('ai-lesson-body');
+            const footerElement = document.getElementById('ai-lesson-footer');
+            const progressElement = document.getElementById('ai-lesson-progress');
+
+            // Update title and meta
+            titleElement.textContent = `🤖 AI Lesson: ${conceptName}`;
+            
+            if (source === 'database') {
+                metaElement.textContent = '📚 Cached lesson (instant load)';
+            } else {
+                metaElement.textContent = '✨ Fresh AI-generated content';
+            }
+
+            // Format and display content
+            const formattedContent = formatMarkdown(content);
+            bodyElement.innerHTML = formattedContent;
+
+            // Show footer with actions
+            footerElement.style.display = 'flex';
+
+            // Update progress info
+            progressElement.innerHTML = `
+                <strong>Source:</strong> ${source === 'database' ? 'Cached' : 'AI Generated'} 
+                • <strong>Ready:</strong> ✅
+            `;
+
+            // Show success notification
+            if (source === 'ai_generated') {
+                showSuccessMessage(`🎉 AI-generated lesson for ${conceptName} is ready!`);
+            }
+        }
+
+        // Close AI lesson modal
+        function closeAILessonModal() {
+            const modal = document.getElementById('ai-lesson-modal');
+            modal.classList.remove('active');
+            window.currentAILessonConceptId = null;
+        }
+
+        // Mark AI lesson as complete
+        async function completeAILesson() {
+            const conceptId = window.currentAILessonConceptId;
+            if (!conceptId) return;
+
+            try {
+                // Update progress via the progress API
+                await fetch(`/api/v1/progress/concepts/${conceptId}/update`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${window.JAC_STORAGE.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        status: 'completed',
+                        progress_percent: 100,
+                        time_spent: 15 // Estimated time spent
+                    })
+                });
+
+                showSuccessMessage('🎉 Lesson completed! Progress updated.');
+                closeAILessonModal();
+                
+                // Refresh dashboard to show updated progress
+                loadDashboardData();
+
+            } catch (error) {
+                console.error('Error updating progress:', error);
+                showErrorMessage('Failed to update progress. Please try again.');
+            }
+        }
+
+        // Format markdown-like content to HTML
+        function formatMarkdown(content) {
+            // Remove metadata header if present
+            content = content.replace(/<!-- Generated on.*?-->\s*/g, '');
+            
+            // Convert headers
+            content = content.replace(/^### (.*$)/gim, '<h3 style="color: #667eea; margin-top: 1.5rem;">$1</h3>');
+            content = content.replace(/^## (.*$)/gim, '<h2 style="color: #667eea; margin-top: 2rem;">$1</h2>');
+            content = content.replace(/^# (.*$)/gim, '<h1 style="color: #2d3748; margin-top: 1rem;">$1</h1>');
+            
+            // Convert bold text
+            content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // Convert italic text
+            content = content.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            
+            // Convert bullet points
+            content = content.replace(/^- (.*$)/gim, '<li>$1</li>');
+            
+            // Convert line breaks to paragraphs
+            const paragraphs = content.split('\n\n').filter(p => p.trim());
+            content = paragraphs.map(p => {
+                if (p.startsWith('<h') || p.startsWith('<li>') || p.startsWith('<pre>')) {
+                    return p;
+                }
+                return `<p style="margin-bottom: 1rem; line-height: 1.6;">${p.replace(/\n/g, '<br>')}</p>`;
+            }).join('');
+
+            // Wrap consecutive <li> items in <ul>
+            content = content.replace(/(<li>.*?<\/li>\s*)+/gs, '<ul style="margin: 1rem 0; padding-left: 2rem;">$&</ul>');
+            
+            return content;
         }
 
         // Open content modal and load content
