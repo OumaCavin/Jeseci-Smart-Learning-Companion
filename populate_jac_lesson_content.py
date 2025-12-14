@@ -4102,7 +4102,7 @@ walker RobustWalker {
 In the next lesson, we'll explore JAC's AI Integration with byLLM, learning how to combine Object-Spatial Programming with Large Language Models to create intelligent, adaptive applications.
 """,
 
-        "jac_ai_integration": '''
+        "jac_ai_integration": """
 # JAC AI Integration with byLLM
 
 ## Introduction to AI in JAC
@@ -4151,14 +4151,14 @@ print(greeting)  # AI-generated personalized greeting
     temperature=0.5,
     max_tokens=500,
     system_prompt="You are an expert programming tutor. Provide clear, concise explanations with practical examples.",
-    prompt_template="""
+    prompt_template='''
     Explain the concept of {concept} in programming to a {skill_level} learner.
     Include:
     1. Simple definition
     2. Practical example
     3. Common use cases
     4. Best practices
-    """,
+    ''',
     response_format="markdown"
 )
 def explain_programming_concept(concept: str, skill_level: str) -> str:
@@ -4183,11 +4183,11 @@ node AIEnhancedUser {
     
     @byllm(
         model="gpt-4",
-        prompt_template="""
+        prompt_template='''
         Based on the user's preferences {preferences} and learning history {history},
         recommend 3 personalized learning activities.
         Consider their skill level and interests.
-        """,
+        ''',
         temperature=0.8
     )
     def generate_personalized_recommendations(self) -> list[str]:
@@ -4197,14 +4197,14 @@ node AIEnhancedUser {
     @byllm(
         model="gpt-4",
         system_prompt="You are a helpful learning assistant. Analyze the user's progress and provide constructive feedback.",
-        prompt_template="""
+        prompt_template='''
         Analyze this learning progress: {progress}
         Provide:
         1. Achievement summary
         2. Areas of strength
         3. Areas for improvement
         4. Next steps recommendation
-        """,
+        ''',
         temperature=0.6
     )
     def analyze_learning_progress(self, progress: dict) -> str:
@@ -4241,13 +4241,13 @@ walker AIAnalysisWalker {
     
     @byllm(
         model="gpt-4",
-        prompt_template="""
+        prompt_template='''
         Based on the user analysis data: {user_data}
         Provide strategic recommendations for:
         1. Learning path optimization
         2. Engagement improvement
         3. Skill development focus
-        """,
+        ''',
         temperature=0.7
     )
     def generate_strategic_recommendations(self, user_data: dict) -> str:
@@ -4276,7 +4276,7 @@ node ContentCreator {
     @byllm(
         model="gpt-4",
         system_prompt="You are an expert educator creating engaging learning content.",
-        prompt_template="""
+        prompt_template='''
         Create a {difficulty_level} level {content_type} about {topic}.
         Requirements:
         - Age appropriate content
@@ -4284,7 +4284,7 @@ node ContentCreator {
         - Practical examples
         - Interactive elements where possible
         - Assessment opportunities
-        """,
+        ''',
         temperature=0.8,
         max_tokens=1500
     )
@@ -4294,14 +4294,14 @@ node ContentCreator {
     
     @byllm(
         model="gpt-4",
-        prompt_template="""
+        prompt_template='''
         Create assessment questions for: {content}
         Include:
         1. Multiple choice questions (3-5)
         2. Short answer questions (2-3)
         3. Practical application questions (1-2)
         Provide answer keys.
-        """,
+        ''',
         temperature=0.6
     )
     def create_assessment_questions(self, content: dict) -> dict:
@@ -4337,7 +4337,7 @@ node AdaptiveLearningSystem {
     @byllm(
         model="gpt-4",
         system_prompt="You are an adaptive AI tutor that adjusts teaching methods based on student needs.",
-        prompt_template="""
+        prompt_template='''
         Student Profile:
         - Skill Level: {skill_level}
         - Learning Style: {learning_style}
@@ -4345,7 +4345,7 @@ node AdaptiveLearningSystem {
         
         Adapt the next learning activity to match the student's needs.
         Consider their strengths, weaknesses, and preferred learning methods.
-        """,
+        ''',
         temperature=0.7
     )
     def generate_adaptive_activity(self, skill_level: str, learning_style: str, progress: dict) -> dict:
@@ -4354,7 +4354,7 @@ node AdaptiveLearningSystem {
     
     @byllm(
         model="gpt-4",
-        prompt_template="""
+        prompt_template='''
         Analyze this student response: {response}
         Provide feedback that:
         1. Corrects misconceptions gently
@@ -4362,7 +4362,7 @@ node AdaptiveLearningSystem {
         3. Suggests next steps
         4. Maintains motivation
         Student learning style: {learning_style}
-        """,
+        ''',
         temperature=0.6
     )
     def provide_adaptive_feedback(self, response: str, learning_style: str) -> str:
@@ -4414,7 +4414,7 @@ walker IntelligentNetworkAnalyzer {
     @byllm(
         model="gpt-4",
         system_prompt="You are a network analysis expert. Identify patterns and provide actionable insights.",
-        prompt_template="""
+        prompt_template='''
         Analyze this learning network data: {network_data}
         
         Identify:
@@ -4425,7 +4425,7 @@ walker IntelligentNetworkAnalyzer {
         5. Community building strategies
         
         Provide specific, actionable recommendations.
-        """,
+        ''',
         temperature=0.7
     )
     def analyze_learning_network(self, network_data: list[str]) -> dict:
@@ -4434,14 +4434,14 @@ walker IntelligentNetworkAnalyzer {
     
     @byllm(
         model="gpt-4",
-        prompt_template="""
+        prompt_template='''
         Based on network analysis: {analysis}
         Create specific action items for:
         1. Individual learners
         2. Learning communities
         3. Platform optimization
         4. Content recommendations
-        """,
+        ''',
         temperature=0.6
     )
     def generate_action_recommendations(self, analysis: dict) -> list[dict]:
@@ -4476,7 +4476,7 @@ node ConversationalAI {
     @byllm(
         model="gpt-4",
         system_prompt="You are a helpful learning assistant. Provide accurate, encouraging responses that promote learning.",
-        prompt_template="""
+        prompt_template='''
         Conversation Context:
         {context}
         
@@ -4484,7 +4484,7 @@ node ConversationalAI {
         
         Respond helpfully while maintaining conversation flow.
         If the user asks about learning topics, provide educational value.
-        """,
+        ''',
         temperature=0.8,
         max_tokens=300
     )
@@ -4494,7 +4494,7 @@ node ConversationalAI {
     
     @byllm(
         model="gpt-4",
-        prompt_template="""
+        prompt_template='''
         Analyze this conversation: {conversation}
         Determine if the user needs:
         1. Educational support
@@ -4503,7 +4503,7 @@ node ConversationalAI {
         4. Resource recommendations
         
         Provide analysis and suggested response strategy.
-        """,
+        ''',
         temperature=0.6
     )
     def analyze_conversation_intent(self, conversation: list[dict]) -> dict:
@@ -4547,7 +4547,7 @@ node AIRecommendationEngine {
     @byllm(
         model="gpt-4",
         system_prompt="You are a recommendation system. Suggest relevant learning content based on user preferences and behavior.",
-        prompt_template="""
+        prompt_template='''
         User Profile:
         - Preferences: {preferences}
         - Interaction History: {history}
@@ -4555,7 +4555,7 @@ node AIRecommendationEngine {
         
         Recommend 5 learning resources that match the user's needs and interests.
         Consider difficulty progression and learning path optimization.
-        """,
+        ''',
         temperature=0.7,
         max_tokens=800
     )
@@ -4565,13 +4565,13 @@ node AIRecommendationEngine {
     
     @byllm(
         model="gpt-4",
-        prompt_template="""
+        prompt_template='''
         User feedback: {feedback}
         Content recommendation: {recommendation}
         
         Explain why this recommendation is relevant and how it helps the user achieve their learning goals.
         Provide reasoning to build user trust.
-        """,
+        ''',
         temperature=0.6
     )
     def explain_recommendation(self, feedback: str, recommendation: dict) -> str:
@@ -4655,13 +4655,13 @@ config AIModelManager {
 # Dynamic model selection in functions
 @byllm(
     model="dynamic",  # Will be selected based on context
-    prompt_template="""
+    prompt_template='''
     Task: {task_description}
     Complexity: {complexity_level}
     Budget: {cost_budget}
     
     Provide appropriate response based on available resources.
-    """,
+    ''',
     temperature=0.7
 )
 def dynamic_ai_function(task_description: str, complexity_level: str, cost_budget: float) -> str:
@@ -4678,7 +4678,7 @@ node AIPerformanceMonitor {
     
     @byllm(
         model="gpt-4",
-        prompt_template="""
+        prompt_template='''
         Evaluate the quality of this AI response: {response}
         Criteria:
         1. Accuracy (1-10)
@@ -4687,7 +4687,7 @@ node AIPerformanceMonitor {
         4. Usefulness (1-10)
         
         Provide detailed feedback and suggestions for improvement.
-        """,
+        ''',
         temperature=0.3
     )
     def evaluate_response_quality(self, response: str) -> dict:
@@ -4741,7 +4741,7 @@ node AIPerformanceMonitor {
 @byllm(
     model="gpt-4",
     system_prompt="You are a professional programming instructor with 10+ years of experience.",
-    prompt_template="""
+    prompt_template='''
     Explain the concept of {concept} to a {skill_level} programmer.
     
     Structure your response:
@@ -4752,7 +4752,7 @@ node AIPerformanceMonitor {
     5. Common pitfalls to avoid
     
     Keep explanations concise but comprehensive.
-    """,
+    ''',
     temperature=0.6
 )
 def explain_concept_effectively(concept: str, skill_level: str) -> str:
@@ -4830,12 +4830,12 @@ class AIContextManager:
 # Use context manager in AI functions
 @byllm(
     model="gpt-4",
-    prompt_template="""
+    prompt_template='''
     Conversation context: {context}
     User query: {query}
     
     Provide helpful response maintaining conversation continuity.
-    """,
+    ''',
     temperature=0.7
 )
 def contextual_ai_response(query: str, context_manager: AIContextManager) -> str:
@@ -4846,7 +4846,7 @@ def contextual_ai_response(query: str, context_manager: AIContextManager) -> str
 ## Next Steps
 
 In the final lesson, we'll explore JAC's Scale-Agnostic Programming capabilities, learning how to build applications that seamlessly scale from single users to millions of users without architectural changes.
-''',
+""",
 
         "jac_scale_agnostic_programming": """
 # JAC Scale-Agnostic Programming
