@@ -150,8 +150,9 @@ async def get_concepts(
             or_(
                 Concept.name.ilike(f"%{search_params.query}%"),
                 Concept.display_name.ilike(f"%{search_params.query}%"),
-                Concept.description.ilike(f"%{search_params.query}%"),
-                Concept.key_terms.any(search_params.query)
+                Concept.description.ilike(f"%{search_params.query}%")
+                # Note: JSON field search removed for SQLite compatibility
+                # Concept.key_terms.any(search_params.query) - Not supported in SQLite
             )
         )
     
