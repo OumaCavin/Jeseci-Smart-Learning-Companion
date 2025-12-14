@@ -75,7 +75,7 @@ def populate_test_data():
         # 2. Get concepts
         print("\n📚 Fetching concepts...")
         concepts_data = get_concepts(token)
-        concepts = concepts_data.get('concepts', [])
+        concepts = concepts_data if isinstance(concepts_data, list) else concepts_data.get('concepts', [])
         
         if not concepts:
             print("⚠️  No concepts found in database. Please seed concepts first.")

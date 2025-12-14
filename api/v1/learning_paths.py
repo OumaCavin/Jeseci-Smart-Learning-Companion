@@ -87,7 +87,7 @@ async def get_learning_paths(
             "description": path.description,
             "difficulty": path.difficulty_level,   # ✅ This is correct
             "category": path.category,
-            "estimated_hours": path.estimated_hours,
+            "estimated_hours": path.estimated_duration,
             "duration": f"{max(1, total_concepts // 2)} weeks",  # Dynamic based on concepts
             
             # Accurate progress data
@@ -469,8 +469,8 @@ async def get_learning_paths_detailed_progress(
             
             # Time analytics
             "total_time_spent": total_time_spent,
-            "estimated_hours": path.estimated_hours,
-            "time_efficiency": round((total_time_spent / path.estimated_hours * 100) if path.estimated_hours > 0 else 0),
+            "estimated_hours": path.estimated_duration,
+            "time_efficiency": round((total_time_spent / path.estimated_duration * 100) if path.estimated_duration and path.estimated_duration > 0 else 0),
             
             # Detailed concept breakdown
             "concept_progress": concept_progress,
