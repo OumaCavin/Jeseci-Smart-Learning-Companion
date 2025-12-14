@@ -28,6 +28,12 @@ This guide explains how to populate your Jeseci Smart Learning Companion with a 
 - **Output**: Dashboard statistics that show meaningful data immediately
 - **Patterns**: Realistic distributions based on concept difficulty
 
+#### **`sync_graph_data.py`** - Polyglot Graph Sync 🆕
+- **Purpose**: Syncs learning paths and user progress to Neo4j for graph queries
+- **Data**: LearningPath nodes, CONTAINS relationships, HAS_PROGRESS relationships
+- **Output**: Graph structure enabling complex queries and AI recommendations
+- **Power**: Enables "Show me all paths containing Machine Learning" type queries
+
 ### **2. Orchestration Scripts**
 
 #### **`seed_complete_ecosystem.py`** - Run Everything
@@ -53,19 +59,20 @@ This guide explains how to populate your Jeseci Smart Learning Companion with a 
 
 ### **Step-by-Step Execution**
 
-#### **Option 1: Complete Setup (Recommended)**
+#### **Option 1: Complete Polyglot Setup (Recommended)**
 ```bash
-# Run everything in one command
-python seed_complete_ecosystem.py
+# Run everything in one command with graph sync
+python seed_polyglot_ecosystem.py
 ```
 
 This script will:
-1. ✅ Check backend health
-2. ✅ Run concept seeding
-3. ✅ Create knowledge graph relationships  
-4. ✅ Simulate user progress
-5. ✅ Verify all components
-6. ✅ Provide frontend access instructions
+1. ✅ Check backend and Neo4j health
+2. ✅ Run concept seeding (dual-write to SQL + Neo4j)
+3. ✅ Create knowledge graph relationships in Neo4j
+4. ✅ Simulate user progress in PostgreSQL
+5. ✅ Sync graph data (learning paths + user journey)
+6. ✅ Verify polyglot persistence sync
+7. ✅ Demonstrate graph query power
 
 #### **Option 2: Manual Step-by-Step**
 ```bash
@@ -78,7 +85,10 @@ python seed_relationships.py
 # Step 3: Populate progress
 python seed_progress.py
 
-# Step 4: Verify everything
+# Step 4: Sync to Neo4j graph (NEW!)
+python sync_graph_data.py
+
+# Step 5: Verify everything
 python check_ecosystem_status.py
 ```
 
@@ -116,6 +126,25 @@ Welcome back, Cavin!
 ⏰ Time Spent: 4.5 hours spent learning
 🔥 Learning Streak: 1 Days Active
 📊 Analytics: 2 concepts mastered
+```
+
+### **🧠 New Graph Query Capabilities (After Graph Sync)**
+```cypher
+# Find all learning paths containing Machine Learning
+MATCH (lp:LearningPath)-[:CONTAINS]->(c:Concept)
+WHERE c.name CONTAINS 'machine_learning'
+RETURN lp.title, lp.difficulty
+
+# Show concepts shared between multiple paths
+MATCH (c:Concept)<-[:CONTAINS]-(lp:LearningPath)
+WITH c, count(lp) as usage_count
+WHERE usage_count > 1
+RETURN c.name, usage_count
+
+# User learning journey with path recommendations
+MATCH (u:User {username: 'cavin_admin'})-[r:HAS_PROGRESS]->(c:Concept)
+OPTIONAL MATCH (c)<-[:CONTAINS]-(lp:LearningPath)
+RETURN c.name, r.status, r.progress_percent, collect(lp.title)
 ```
 
 ## 🔍 **Verification Commands**
