@@ -1,195 +1,116 @@
 #!/usr/bin/env python3
 """
 Create Admin User Script for Jeseci Smart Learning Companion
-This script creates a default admin user for the platform
+This script uses the API to create an admin user safely
 """
 
-import os
+import requests
 import sys
-import hashlib
-from datetime import datetime
-from sqlalchemy.orm import Session
-from config.database import SessionLocal
-from database.models.sqlite_models import User
 
-def create_admin_user():
-    """Create a default admin user for the platform"""
-    db = SessionLocal()
+# Configuration
+API_URL = "http://127.0.0.1:8000/api/v1"
+
+def create_admin():
+    print("🚀 Creating Admin User via API...")
+    print("=" * 50)
+
+    # Matches the User model in sqlite_models.py
+    payload = {
+        "username": "cavin_admin",
+        "email": "cavin@jeseci.com", 
+        "password": "secure_password_123",
+        "first_name": "Cavin",
+        "last_name": "Admin"
+    }
     
     try:
-        print("🚀 Creating Admin User for Jeseci Smart Learning Companion...")
+        print(f"📧 Creating user: {payload['username']} ({payload['email']})")
         
-        # Default admin credentials
-        admin_email = "admin@jeseci.com"
-        admin_password = "admin123"
-        admin_username = "admin"
-        admin_first_name = "Admin"
-        admin_last_name = "User"
+        # Register the user via API
+        resp = requests.post(f"{API_URL}/auth/register", json=payload, timeout=10)
         
-        # Check if admin already exists
-        existing_admin = db.query(User).filter(User.email == admin_email).first()
-        if existing_admin:
-            print(f"⚠️  Admin user already exists: {admin_email}")
-            print("📧 Email:", admin_email)
-            print("🔑 Password:", admin_password)
-            return existing_admin
-        
-        # Create admin user with profile information
-        admin_user = User(
-            email=admin_email,
-            username=admin_username,
-            password_hash=hashlib.sha256(admin_password.encode()).hexdigest(),
-            first_name=admin_first_name,
-            last_name=admin_last_name,
-            bio="System Administrator",
-            preferred_language="en",
-            is_verified=True,
-            is_active=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
-        )
-        
-        db.add(admin_user)
-        db.flush()  # Get the user ID
-        db.commit()
-        
-        print("✅ Admin user created successfully!")
-        print("📧 Email:", admin_email)
-        print("🔑 Password:", admin_password)
-        print("👤 Username:", admin_username)
-        print("🆔 User ID:", admin_user.user_id)
-        print("👤 Full Name:", f"{admin_first_name} {admin_last_name}")
-        
-        return admin_user
-        
-    except Exception as e:
-        print(f"❌ Error creating admin user: {e}")
-        db.rollback()
-        raise
-    finally:
-        db.close()
-
-def create_additional_admin():
-    """Create an additional admin user with custom credentials"""
-    db = SessionLocal()
-    
-    try:
-        print("\n🔧 Creating Additional Admin User...")
-        
-        # Custom admin credentials
-        admin_email = input("Enter admin email (default: admin2@jeseci.com): ").strip() or "admin2@jeseci.com"
-        admin_password = input("Enter admin password (default: AdminPass123!): ").strip() or "AdminPass123!"
-        admin_username = input("Enter admin username (default: admin2): ").strip() or "admin2"
-        admin_first_name = input("Enter first name (default: Admin): ").strip() or "Admin"
-        admin_last_name = input("Enter last name (default: Two): ").strip() or "Two"
-        
-        # Check if user already exists
-        existing_user = db.query(User).filter(
-            (User.email == admin_email) | (User.username == admin_username)
-        ).first()
-        
-        if existing_user:
-            print(f"⚠️  User already exists: {admin_email} / {admin_username}")
-            return existing_user
-        
-        # Create user with profile information
-        user = User(
-            email=admin_email,
-            username=admin_username,
-            password_hash=hashlib.sha256(admin_password.encode()).hexdigest(),
-            first_name=admin_first_name,
-            last_name=admin_last_name,
-            bio="System Administrator",
-            preferred_language="en",
-            is_verified=True,
-            is_active=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
-        )
-        
-        db.add(user)
-        db.flush()
-        db.commit()
-        
-        print("✅ Additional admin user created successfully!")
-        print("📧 Email:", admin_email)
-        print("🔑 Password:", admin_password)
-        print("👤 Username:", admin_username)
-        print("🆔 User ID:", user.user_id)
-        print("👤 Full Name:", f"{admin_first_name} {admin_last_name}")
-        
-        return user
-        
-    except Exception as e:
-        print(f"❌ Error creating additional admin: {e}")
-        db.rollback()
-        raise
-    finally:
-        db.close()
-
-def list_admin_users():
-    """List all admin users in the system"""
-    db = SessionLocal()
-    
-    try:
-        print("\n👥 Current Admin Users:")
-        print("=" * 50)
-        
-        # Query admin users by email or username pattern
-        admin_users = db.query(User).filter(
-            (User.email.like('%admin%')) | 
-            (User.username.like('%admin%')) |
-            (User.bio.like('%Administrator%'))
-        ).all()
-        
-        if not admin_users:
-            print("No admin users found.")
-            return
-        
-        for user in admin_users:
-            full_name = f"{user.first_name or ''} {user.last_name or ''}".strip() or "Unknown"
+        if resp.status_code in [200, 201]:
+            print(f"✅ Success! Admin '{payload['username']}' created successfully.")
+            print(f"🔑 Password: {payload['password']}")
+            print(f"📧 Email: {payload['email']}")
             
-            print(f"🆔 ID: {user.user_id}")
-            print(f"👤 Name: {full_name}")
-            print(f"📧 Email: {user.email}")
-            print(f"📱 Username: {user.username}")
-            print(f"✅ Active: {'Yes' if user.is_active else 'No'}")
-            print(f"🔐 Verified: {'Yes' if user.is_verified else 'No'}")
-            print(f"📅 Created: {user.created_at}")
-            if user.bio:
-                print(f"📝 Bio: {user.bio}")
-            print("-" * 30)
+            # Test login
+            login_data = {
+                "username": payload['username'],
+                "password": payload['password']
+            }
+            login_resp = requests.post(f"{API_URL}/auth/login", json=login_data, timeout=10)
             
-    except Exception as e:
-        print(f"❌ Error listing admin users: {e}")
-    finally:
-        db.close()
-
-def main():
-    """Main function"""
-    print("🎓 Jeseci Smart Learning Companion - Admin User Creation")
-    print("=" * 55)
-    
-    while True:
-        print("\nChoose an option:")
-        print("1. Create default admin user")
-        print("2. Create additional admin user")
-        print("3. List all admin users")
-        print("4. Exit")
-        
-        choice = input("\nEnter your choice (1-4): ").strip()
-        
-        if choice == "1":
-            create_admin_user()
-        elif choice == "2":
-            create_additional_admin()
-        elif choice == "3":
-            list_admin_users()
-        elif choice == "4":
-            print("👋 Goodbye!")
-            break
+            if login_resp.status_code == 200:
+                print("✅ Login test successful!")
+                return True
+            else:
+                print("⚠️ User created but login test failed")
+                
+        elif resp.status_code == 400:
+            # Check if it's because user already exists
+            resp_text = resp.text.lower()
+            if "exists" in resp_text or "already" in resp_text:
+                print(f"⚠️  User '{payload['username']}' already exists.")
+                print(f"🔑 Password: {payload['password']}")
+                print(f"📧 Email: {payload['email']}")
+                
+                # Test login with existing user
+                login_data = {
+                    "username": payload['username'],
+                    "password": payload['password']
+                }
+                login_resp = requests.post(f"{API_URL}/auth/login", json=login_data, timeout=10)
+                
+                if login_resp.status_code == 200:
+                    print("✅ Existing user login test successful!")
+                    return True
+                else:
+                    print("❌ Login test failed for existing user")
+                    print(f"Response: {login_resp.text}")
+            else:
+                print(f"❌ Registration failed: {resp.text}")
         else:
-            print("❌ Invalid choice. Please enter 1-4.")
+            print(f"❌ Failed: {resp.status_code} - {resp.text}")
+            
+    except requests.exceptions.ConnectionError:
+        print("❌ Connection error: Cannot connect to API")
+        print("💡 Hint: Is the backend running?")
+        print("   Run: uvicorn main:app --reload")
+        return False
+    except requests.exceptions.Timeout:
+        print("❌ Timeout: API is not responding")
+        print("💡 Hint: Check if the backend is running on port 8000")
+        return False
+    except Exception as e:
+        print(f"❌ Unexpected error: {e}")
+        return False
+        
+    return False
+
+def test_api_connection():
+    """Test if the API is running"""
+    try:
+        resp = requests.get(f"{API_URL}/auth/ping", timeout=5)
+        print("✅ API connection successful")
+        return True
+    except:
+        print("❌ API connection failed")
+        print("💡 Start the backend with: uvicorn main:app --reload")
+        return False
 
 if __name__ == "__main__":
-    main()
+    print("🎓 Jeseci Smart Learning Companion - Admin Creation")
+    print("=" * 60)
+    
+    # Test API connection first
+    if not test_api_connection():
+        sys.exit(1)
+    
+    # Create admin user
+    success = create_admin()
+    
+    if success:
+        print("\n🎉 Admin creation completed successfully!")
+    else:
+        print("\n❌ Admin creation failed. Please check the error messages above.")
