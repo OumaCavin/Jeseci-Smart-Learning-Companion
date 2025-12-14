@@ -796,7 +796,7 @@ def seed_content_to_database():
                     practice_questions=content_item.get("practice_questions", []),
                     examples=content_item.get("examples", []),
                     exercises=content_item.get("exercises", []),
-                    author="MiniMax Agent",
+                    author="Cavin Otieno",
                     ai_generated=True
                 )
                 
