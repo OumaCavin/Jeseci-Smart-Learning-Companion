@@ -12,8 +12,21 @@ from config.database import Base
 # Import SQLite-compatible models
 from .sqlite_models import *
 
-# Export the UserConceptProgress model for easy importing
+# Export all models for easy importing throughout the application
 __all__ = [
-    'User', 'Concept', 'UserProgress', 'UserConceptProgress', 'LearningPath',
-    'LearningSession', 'Quiz', 'QuizAttempt', 'UserAchievement', 'Base'
+    'Base',
+    'User', 
+    'UserLearningPreferences',
+    'Concept', 
+    'ConceptContent',
+    'UserConceptProgress',      # Used in learning paths for progress calculation
+    'UserContentProgress',      # Used in content management
+    'LearningPath', 
+    'LearningPathConcept',      # Used in learning paths for concept associations
+    'LearningSession',          # Used in learning path tracking
+    'UserProgress', 
+    'Quiz', 
+    'QuizAttempt', 
+    'UserAchievement',
+    'concept_relations'         # Association table for concept relationships
 ]
