@@ -4102,7 +4102,7 @@ walker RobustWalker {
 In the next lesson, we'll explore JAC's AI Integration with byLLM, learning how to combine Object-Spatial Programming with Large Language Models to create intelligent, adaptive applications.
 """,
 
-        "jac_ai_integration": """
+        "jac_ai_integration": '''
 # JAC AI Integration with byLLM
 
 ## Introduction to AI in JAC
@@ -4846,7 +4846,7 @@ def contextual_ai_response(query: str, context_manager: AIContextManager) -> str
 ## Next Steps
 
 In the final lesson, we'll explore JAC's Scale-Agnostic Programming capabilities, learning how to build applications that seamlessly scale from single users to millions of users without architectural changes.
-""",
+''',
 
         "jac_scale_agnostic_programming": """
 # JAC Scale-Agnostic Programming
