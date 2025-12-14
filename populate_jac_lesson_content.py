@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 JAC Programming Lesson Content Population Script
-Populates concepts with rich tutorial content for each JAC programming concept
+Populates the lesson_content column with rich tutorial content for each JAC programming concept
 """
 
 import json
@@ -1706,22 +1706,14 @@ In the next lesson, we'll explore JAC's Object-Oriented Programming features, le
     for concept in concepts:
         concept_name = concept.name
         if concept_name in lesson_contents:
-            # Update the concept with rich lesson content
-            # Assuming there's a lesson_content field in the Concept model
-            # If not, this might need to be added to the model
-            
-            # For now, we'll update the detailed_description to include the lesson content
-            current_description = concept.detailed_description or ""
+            # Set lesson content to the dedicated lesson_content column
             lesson_content = lesson_contents[concept_name]
             
-            # Combine existing description with lesson content
-            full_content = f"{current_description}\n\n{lesson_content}"
-            
-            concept.detailed_description = full_content
+            concept.lesson_content = lesson_content
             concept.updated_at = datetime.utcnow()
             
             updated_count += 1
-            print(f"✅ Updated lesson content for: {concept.display_name}")
+            print(f"✅ Set lesson content for: {concept.display_name}")
         else:
             print(f"⚠️  No lesson content found for: {concept.display_name}")
     
