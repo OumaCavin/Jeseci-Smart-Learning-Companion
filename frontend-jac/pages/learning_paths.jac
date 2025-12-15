@@ -13,17 +13,20 @@ obj LearningPathsPage {
         total_time_remaining = 0;
         
         for (path in paths_data) {
-            progress = path.get("progress", 0);
+            # Progress should be calculated from UserProgress data (not stored directly in learning_paths)
+            progress = path.get("progress", 0.0);  # API should provide calculated progress
             if (progress > 0 and progress < 1) { 
                 active_count += 1; 
             }
             total_progress += progress;
             
-            # Extract time estimates if available
-            time_spent = path.get("time_spent_hours", 0);
-            time_remaining = path.get("estimated_duration_hours", 0) - time_spent;
-            total_time_spent += time_spent;
-            total_time_remaining += max(0, time_remaining);
+            # Extract time estimates if available (convert minutes to hours)
+            time_spent_hours = path.get("time_spent_hours", 0);
+            estimated_duration_minutes = path.get("estimated_duration", 0);
+            estimated_duration_hours = estimated_duration_minutes / 60.0;  # Convert to hours
+            time_remaining_hours = estimated_duration_hours - time_spent_hours;
+            total_time_spent += time_spent_hours;
+            total_time_remaining += max(0, time_remaining_hours);
         }
         
         avg_progress = int((total_progress / paths_data.length * 100)) if paths_data.length > 0 else 0;
@@ -109,13 +112,15 @@ obj LearningPathsPage {
     can render_path_header with entry (path: dict) -> div {
         <div className="path-header">
             <div className="path-icon">
-                {self.get_path_icon(path.get("difficulty", "beginner"))}
+                # Fallback to difficulty_level if difficulty is missing
+                difficulty = path.get("difficulty_level", path.get("difficulty", "beginner"));
+                {self.get_path_icon(difficulty)}
             </div>
             <div className="path-info">
                 <h3 className="path-title">{path.get("name", "Unknown Path")}</h3>
                 <div className="path-meta">
-                    <span className="path-difficulty">{path.get("difficulty", "Unknown")}</span>
-                    <span className="path-duration">{path.get("estimated_duration", "Unknown")}</span>
+                    <span className="path-difficulty">{path.get("difficulty_level", path.get("difficulty", "Unknown"))}</span>
+                    <span className="path-duration">{path.get("estimated_duration", "Unknown")} min</span>
                 </div>
             </div>
         </div>
