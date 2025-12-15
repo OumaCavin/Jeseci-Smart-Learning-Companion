@@ -13,8 +13,39 @@ obj LearningPathsPage {
         total_time_remaining = 0;
         
         for (path in paths_data) {
-            # Progress should be calculated from UserProgress data (not stored directly in learning_paths)
-            progress = path.get("progress", 0.0);  # API should provide calculated progress
+            # Progress field not stored in learning_paths table - needs API calculation
+            # For now, use fallback logic since we can't calculate from frontend
+            progress = path.get("progress", None);
+            
+            # If no progress data, use intelligent fallback based on available fields
+            if (progress == None) {
+                # Check for any completed concepts count or time spent as progress indicator
+                concepts_count = path.get("concepts_count", 0);
+                completed_count = path.get("concepts_completed", 0);
+                time_spent = path.get("time_spent_hours", 0);
+                
+                if (concepts_count > 0 and completed_count > 0) {
+                    # Use concept completion ratio if available
+                    progress = float(completed_count) / concepts_count;
+                } elif (time_spent > 0) {
+                    # Estimate progress based on time spent (10 hours = 25% progress)
+                    estimated_duration_hours = path.get("estimated_duration", 0) / 60.0;
+                    if (estimated_duration_hours > 0) {
+                        progress = min(time_spent / estimated_duration_hours, 0.9);  # Cap at 90%
+                    } else {
+                        progress = 0.1;  # Small progress if any time spent
+                    }
+                } else {
+                    progress = 0.0;  # No progress data available
+                }
+            }
+            
+            # Ensure progress is within valid range (0.0 to 1.0)
+            progress = max(0.0, min(progress, 1.0));
+            
+            # TODO: Remove this fallback logic when backend provides proper progress calculation
+            # Progress should be calculated by API from UserProgress data, not by frontend
+            
             if (progress > 0 and progress < 1) { 
                 active_count += 1; 
             }
