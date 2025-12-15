@@ -275,8 +275,11 @@ obj LearningCompanionApp {
 
     can login with entry (login_input: str, password: str) {
         try {
+            # Create FastAPI service instance
+            api_service = services.FastAPIService();
+            
             # Call FastAPI login endpoint
-            login_response = services.FastAPIService.login(login_input, password);
+            login_response = api_service.login(login_input, password);
             
             if (login_response["success"]) {
                 self.auth_token = login_response["token"];
@@ -295,8 +298,11 @@ obj LearningCompanionApp {
 
     can register with entry (user_data: dict) {
         try {
+            # Create FastAPI service instance
+            api_service = services.FastAPIService();
+            
             # Call FastAPI register endpoint
-            register_response = services.FastAPIService.register(user_data);
+            register_response = api_service.register(user_data);
             
             if (register_response["success"]) {
                 print("✅ Registration successful");
