@@ -201,7 +201,7 @@ obj LearningCompanionApp {
             case "dashboard": return pages.DashboardPage.render(self.dashboard_stats); 
             case "concepts": return pages.ConceptsPage.render(self.concepts);
             case "learning-paths": return pages.LearningPathsPage.render(self.learning_paths);
-            case "progress": return pages.ProgressPage.render();
+            case "progress": return pages.ProgressPage.render(self.dashboard_stats);
             default: return pages.DashboardPage.render(self.dashboard_stats);
         }
     }
