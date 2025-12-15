@@ -57,14 +57,31 @@ obj LearningCompanionApp {
             api_service = services.FastAPIService();
             api_service.set_auth_token(self.auth_token);
             
-            # Load concepts
-            concepts_data = api_service.get_concepts();
-            self.concepts = concepts_data;
-            
-            # Load learning paths
-            paths_data = api_service.get_learning_paths();
-            self.learning_paths = paths_data;
+            try {
+                # Load concepts
+                print("📚 Loading concepts...");
+                concepts_data = api_service.get_concepts();
+                self.concepts = concepts_data;
+                print(f"✅ Loaded {len(concepts_data)} concepts");
+                
+                # Load learning paths
+                print("🛤️ Loading learning paths...");
+                paths_data = api_service.get_learning_paths();
+                self.learning_paths = paths_data;
+                print(f"✅ Loaded {len(paths_data)} learning paths");
+                
+            } catch (error) {
+                print(f"❌ Failed to load initial data: {error}");
+                # Show error to user or retry mechanism
+                self.show_data_loading_error(error);
+            }
         }
+    }
+    
+    # Handle data loading errors
+    can show_data_loading_error with entry (error: str) {
+        print(f"🚨 Data loading error: {error}");
+        # In production, you'd show a toast notification or retry button
     }
 
     # Render the main application
@@ -385,8 +402,22 @@ obj LearningCompanionApp {
 
     # Utility methods
     can get_user_name with entry {
-        # Extract user name from JWT token or user data
-        return "Learner";  # Placeholder
+        # Extract user name from user state or JWT token
+        if (self.user_state and "username" in self.user_state) {
+            return self.user_state["username"];
+        } elif (self.user_state and "email" in self.user_state) {
+            # Extract username from email (before @)
+            email = self.user_state["email"];
+            return email.split("@")[0];
+        }
+        return "Learner";  # Fallback
+    }
+    
+    # Update user state after successful login
+    can update_user_state with entry (login_response: dict) {
+        if (login_response["success"] and "user" in login_response) {
+            self.user_state = login_response["user"];
+        }
     }
 
     # Local storage helpers
