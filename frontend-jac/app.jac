@@ -248,6 +248,11 @@ obj LearningCompanionApp {
         components.RegisterModal.show(self);
     }
     
+    # Show password reset modal (for when users click reset link in email)
+    can show_password_reset_modal with entry (reset_token: str = "") {
+        components.PasswordResetModal.show(self, reset_token);
+    }
+    
     # Handle login from modal
     can handle_modal_login with entry (login_input: str, password: str, remember_me: bool) {
         self.login(login_input, password);
@@ -256,6 +261,16 @@ obj LearningCompanionApp {
     # Handle register from modal
     can handle_modal_register with entry (user_data: dict) {
         self.register(user_data);
+    }
+    
+    # Handle forgot password from modal
+    can handle_modal_forgot_password with entry (email: str) {
+        self.send_password_reset(email);
+    }
+    
+    # Handle password reset from modal
+    can handle_modal_password_reset with entry (new_password: str, reset_token: str) {
+        self.reset_password(new_password, reset_token);
     }
 
     can login with entry (login_input: str, password: str) {
@@ -300,6 +315,66 @@ obj LearningCompanionApp {
         self.clear_local_storage("auth_token");
         self.render_app();
         print("👋 Logged out successfully");
+    }
+
+    # Password reset methods
+    can send_password_reset with entry (email: str) {
+        try {
+            # Create FastAPI service instance
+            api_service = services.FastAPIService();
+            
+            # Call FastAPI forgot password endpoint
+            forgot_response = api_service.forgot_password(email);
+            
+            if (forgot_response["success"]) {
+                print("✅ Password reset email sent successfully");
+                # Show success message to user (you could add a toast notification here)
+                self.show_password_reset_success();
+            } else {
+                print(f"❌ Failed to send password reset email: {forgot_response.get('error', 'Unknown error')}");
+                # Show error message to user
+                self.show_password_reset_error(forgot_response.get('error', 'Failed to send reset email'));
+            }
+        } catch (error) {
+            print(f"❌ Password reset error: {error}");
+            self.show_password_reset_error("Connection error. Please try again.");
+        }
+    }
+
+    can reset_password with entry (new_password: str, reset_token: str) {
+        try {
+            # Create FastAPI service instance
+            api_service = services.FastAPIService();
+            
+            # Call FastAPI reset password endpoint
+            reset_response = api_service.reset_password(reset_token, new_password);
+            
+            if (reset_response["success"]) {
+                print("✅ Password reset successfully");
+                # Show success message and redirect to login
+                self.show_password_reset_success();
+                # Auto-redirect to login after success
+                self.show_login_modal();
+            } else {
+                print(f"❌ Failed to reset password: {reset_response.get('error', 'Unknown error')}");
+                # Show error message to user
+                self.show_password_reset_error(reset_response.get('error', 'Failed to reset password'));
+            }
+        } catch (error) {
+            print(f"❌ Password reset error: {error}");
+            self.show_password_reset_error("Connection error. Please try again.");
+        }
+    }
+
+    # Show password reset success/error messages
+    can show_password_reset_success with entry {
+        print("✅ Password reset email sent! Check your inbox.");
+        # You could add a toast notification or success modal here
+    }
+
+    can show_password_reset_error with entry (error_message: str) {
+        print(f"❌ Password reset error: {error_message}");
+        # You could add a toast notification or error modal here
     }
 
     # Utility methods

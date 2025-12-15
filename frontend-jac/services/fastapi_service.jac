@@ -96,6 +96,30 @@ obj FastAPIService {
         return {"success": True, "message": "Logged out successfully"};
     }
 
+    # Password reset endpoints
+    can forgot_password with entry (email: str) -> dict {
+        """Send password reset email"""
+        reset_data = {"email": email};
+        
+        # Adjust endpoint to match backend (usually /auth/forgot-password)
+        response = self.make_request("POST", "/auth/forgot-password", reset_data);
+        
+        return response;
+    }
+
+    can reset_password with entry (token: str, new_password: str) -> dict {
+        """Reset password using reset token"""
+        reset_data = {
+            "token": token,
+            "new_password": new_password
+        };
+        
+        # Adjust endpoint to match backend (usually /auth/reset-password)
+        response = self.make_request("POST", "/auth/reset-password", reset_data);
+        
+        return response;
+    }
+
     # Concept endpoints
     can get_concepts with entry (search_params: dict = None) -> list {
         endpoint = "/concepts/";
