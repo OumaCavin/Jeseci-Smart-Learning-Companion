@@ -5,11 +5,13 @@ Main dashboard showing learning progress and quick actions
 
 obj DashboardPage {
     
-    can render with entry -> div {
+    # 1. Accept 'stats' dictionary as an argument
+    can render with entry (stats: dict) -> div {
         <div className="dashboard-page">
             {self.render_dashboard_header()}
-            {self.render_stats_cards()}
-            {self.render_recent_activity()}
+            # 2. Pass data down to sub-components
+            {self.render_stats_cards(stats)}
+            {self.render_recent_activity(stats.get("recent_activity", []))}
             {self.render_recommended_content()}
             {self.render_quick_actions()}
         </div>
@@ -22,12 +24,19 @@ obj DashboardPage {
         </div>
     }
 
-    can render_stats_cards with entry -> div {
+    # 3. Use real values from the dictionary
+    can render_stats_cards with entry (stats: dict) -> div {
+        # Default to 0 if data hasn't loaded yet
+        completed = stats.get("completed_concepts", 0);
+        streak = stats.get("streak_days", 0);
+        mastery = int(stats.get("mastery_average", 0) * 100);
+        hours = stats.get("time_spent_hours", 0);
+
         <div className="stats-grid">
-            {self.render_stat_card("Concepts Learned", "24", "📚", "#4CAF50")}
-            {self.render_stat_card("Current Streak", "7 days", "🔥", "#FF9800")}
-            {self.render_stat_card("Mastery Score", "68%", "🎯", "#2196F3")}
-            {self.render_stat_card("Time Spent", "24.5h", "⏱️", "#9C27B0")}
+            {self.render_stat_card("Concepts Learned", f"{completed}", "📚", "#4CAF50")}
+            {self.render_stat_card("Current Streak", f"{streak} days", "🔥", "#FF9800")}
+            {self.render_stat_card("Mastery Score", f"{mastery}%", "🎯", "#2196F3")}
+            {self.render_stat_card("Time Spent", f"{hours}h", "⏱️", "#9C27B0")}
         </div>
     }
 
@@ -41,14 +50,20 @@ obj DashboardPage {
         </div>
     }
 
-    can render_recent_activity with entry -> div {
+    # 4. Render dynamic activity list
+    can render_recent_activity with entry (activities: list) -> div {
         <div className="dashboard-section">
             <h3>📈 Recent Activity</h3>
             <div className="activity-list">
-                {self.render_activity_item("Completed", "Object-Oriented Programming", "2 hours ago")}
-                {self.render_activity_item("Started", "Machine Learning Basics", "1 day ago")}
-                {self.render_activity_item("Reviewed", "Python Data Structures", "2 days ago")}
-                {self.render_activity_item("Achieved", "Week Warrior Badge", "3 days ago")}
+                # Loop through dynamic list
+                for (item in activities) {
+                    {self.render_activity_item(item.get("action"), item.get("item"), item.get("time"))}
+                }
+                
+                # Show empty state if no activity
+                if (activities.length == 0) {
+                    <div className="empty-activity">No recent activity</div>
+                }
             </div>
         </div>
     }

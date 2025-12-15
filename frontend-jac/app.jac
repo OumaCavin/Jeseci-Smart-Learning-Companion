@@ -15,6 +15,7 @@ obj LearningCompanionApp {
     has current_page: str = "dashboard";
     has concepts: list = [];
     has learning_paths: list = [];
+    has dashboard_stats: dict = {};  # NEW: Dashboard statistics
     has is_authenticated: bool = False;
     
     # API Configuration
@@ -58,6 +59,12 @@ obj LearningCompanionApp {
             api_service.set_auth_token(self.auth_token);
             
             try {
+                # 1. Load Dashboard Stats (New!)
+                print("📊 Loading dashboard statistics...");
+                progress_data = api_service.get_user_progress();
+                self.dashboard_stats = progress_data;
+                print(f"✅ Loaded dashboard stats: {len(progress_data)} data points");
+
                 # Load concepts
                 print("📚 Loading concepts...");
                 concepts_data = api_service.get_concepts();
@@ -190,11 +197,12 @@ obj LearningCompanionApp {
         }
         
         match (self.current_page) {
-            case "dashboard": return pages.DashboardPage.render();
+            # Pass the fetched stats to the page!
+            case "dashboard": return pages.DashboardPage.render(self.dashboard_stats); 
             case "concepts": return pages.ConceptsPage.render(self.concepts);
             case "learning-paths": return pages.LearningPathsPage.render(self.learning_paths);
             case "progress": return pages.ProgressPage.render();
-            default: return pages.DashboardPage.render();
+            default: return pages.DashboardPage.render(self.dashboard_stats);
         }
     }
 
