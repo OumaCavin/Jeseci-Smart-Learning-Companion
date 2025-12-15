@@ -4,8 +4,12 @@ Login and Registration modals for user authentication
 """
 
 obj LoginModal {
+    has app_instance: dict = None;
     
-    can show with entry {
+    can show with entry (app_instance: dict = None) {
+        # Store app instance for callbacks
+        self.app_instance = app_instance;
+        
         <div className="modal-overlay" onClick={(e) => self.close_modal(e)}>
             <div className="modal-content login-modal" onClick={(e) => e.stopPropagation()}>
                 {self.render_modal_header()}
@@ -75,22 +79,29 @@ obj LoginModal {
         event.preventDefault();
         
         form_data = new FormData(event.target);
-        email = form_data.get("email");
+        login_input = form_data.get("email");  # Can be email or username
         password = form_data.get("password");
         remember_me = form_data.get("remember_me") == "on";
         
-        print(f"🔐 Attempting login for: {email}");
+        print(f"🔐 Attempting login for: {login_input}");
         
         # Call the main app's login method
-        # This would integrate with the FastAPI service
-        self.perform_login(email, password, remember_me);
+        # The main app handles FastAPI integration
+        self.perform_login(login_input, password, remember_me);
     }
 
-    can perform_login with entry (email: str, password: str, remember_me: bool) {
-        # Integration with FastAPI service
-        print(f"Logging in user: {email}");
+    can perform_login with entry (login_input: str, password: str, remember_me: bool) {
+        # Integration with main app
+        print(f"Logging in user: {login_input}");
         
-        # Close modal after successful login
+        if (self.app_instance) {
+            # Call the main app's login method
+            self.app_instance.handle_modal_login(login_input, password, remember_me);
+        } else {
+            print("❌ No app instance available for login");
+        }
+        
+        # Close modal
         self.close_modal();
     }
 
@@ -110,8 +121,9 @@ obj LoginModal {
 }
 
 obj RegisterModal {
+    has app_instance: dict = None;
     
-    can show with entry {
+    can show with entry (app_instance: dict = None) {
         <div className="modal-overlay" onClick={(e) => self.close_modal(e)}>
             <div className="modal-content register-modal" onClick={(e) => e.stopPropagation()}>
                 {self.render_modal_header()}
@@ -249,8 +261,15 @@ obj RegisterModal {
     }
 
     can perform_register with entry (user_data: dict) {
-        # Integration with FastAPI service
+        # Integration with main app
         print(f"Registering user: {user_data.email}");
+        
+        if (self.app_instance) {
+            # Call the main app's register method
+            self.app_instance.handle_modal_register(user_data);
+        } else {
+            print("❌ No app instance available for registration");
+        }
         
         # Close modal after successful registration
         self.close_modal();

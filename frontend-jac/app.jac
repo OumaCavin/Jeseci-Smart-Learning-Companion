@@ -53,12 +53,16 @@ obj LearningCompanionApp {
     # Load initial data from FastAPI backend
     can load_initial_data with entry {
         if (self.is_authenticated) {
+            # Create FastAPI service instance
+            api_service = services.FastAPIService();
+            api_service.set_auth_token(self.auth_token);
+            
             # Load concepts
-            concepts_data = services.FastAPIService.get_concepts();
+            concepts_data = api_service.get_concepts();
             self.concepts = concepts_data;
             
             # Load learning paths
-            paths_data = services.FastAPIService.get_learning_paths();
+            paths_data = api_service.get_learning_paths();
             self.learning_paths = paths_data;
         }
     }
@@ -235,27 +239,39 @@ obj LearningCompanionApp {
 
     # Authentication methods
     can show_login_modal with entry {
-        components.LoginModal.show();
+        # Pass the app instance to the modal for callback
+        components.LoginModal.show(self);
     }
 
     can show_register_modal with entry {
-        components.RegisterModal.show();
+        # Pass the app instance to the modal for callback
+        components.RegisterModal.show(self);
+    }
+    
+    # Handle login from modal
+    can handle_modal_login with entry (login_input: str, password: str, remember_me: bool) {
+        self.login(login_input, password);
+    }
+    
+    # Handle register from modal
+    can handle_modal_register with entry (user_data: dict) {
+        self.register(user_data);
     }
 
-    can login with entry (email: str, password: str) {
+    can login with entry (login_input: str, password: str) {
         try {
             # Call FastAPI login endpoint
-            login_response = services.FastAPIService.login(email, password);
+            login_response = services.FastAPIService.login(login_input, password);
             
-            if (login_response.success) {
-                self.auth_token = login_response.token;
+            if (login_response["success"]) {
+                self.auth_token = login_response["token"];
                 self.is_authenticated = True;
                 self.save_to_local_storage("auth_token", self.auth_token);
                 self.load_initial_data();
                 self.render_app();
                 print("✅ Login successful");
             } else {
-                print(f"❌ Login failed: {login_response.error}");
+                print(f"❌ Login failed: {login_response.get('error', 'Unknown error')}");
             }
         } catch (error) {
             print(f"❌ Login error: {error}");
@@ -267,11 +283,11 @@ obj LearningCompanionApp {
             # Call FastAPI register endpoint
             register_response = services.FastAPIService.register(user_data);
             
-            if (register_response.success) {
+            if (register_response["success"]) {
                 print("✅ Registration successful");
                 self.show_login_modal();
             } else {
-                print(f"❌ Registration failed: {register_response.error}");
+                print(f"❌ Registration failed: {register_response.get('error', 'Unknown error')}");
             }
         } catch (error) {
             print(f"❌ Registration error: {error}");
