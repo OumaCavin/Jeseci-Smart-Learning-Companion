@@ -308,6 +308,12 @@ obj LearningCompanionApp {
             
             if (login_response["success"]) {
                 self.auth_token = login_response["token"];
+                
+                # Store user info if returned by login endpoint
+                if ("user" in login_response) {
+                    self.user_state = login_response["user"];
+                }
+                
                 self.is_authenticated = True;
                 self.save_to_local_storage("auth_token", self.auth_token);
                 self.load_initial_data();

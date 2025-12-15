@@ -81,7 +81,16 @@ obj FastAPIService {
             data = response["data"];
             if ("access_token" in data) {
                 self.set_auth_token(data["access_token"]);
-                return {"success": True, "token": data["access_token"]};
+                
+                # Prepare login response with user info if available
+                login_result = {"success": True, "token": data["access_token"]};
+                
+                # Include user information if returned by backend
+                if ("user" in data) {
+                    login_result["user"] = data["user"];
+                }
+                
+                return login_result;
             }
         }
         return response;
