@@ -3,6 +3,8 @@ Authentication Components
 Login and Registration modals for user authentication
 """
 
+import "../services/fastapi_service.jac" as services;
+
 obj LoginModal {
     has app_instance: dict = None;
     
@@ -31,11 +33,11 @@ obj LoginModal {
     can render_login_form with entry -> div {
         <form className="login-form" onSubmit={(e) => self.handle_login(e)}>
             <div className="form-group">
-                <label className="form-label">Email Address</label>
+                <label className="form-label">Email or Username</label>
                 <input 
-                    type="email" 
+                    type="text" 
                     className="form-input" 
-                    placeholder="Enter your email"
+                    placeholder="Enter your email or username"
                     name="email"
                     required
                 />
@@ -97,18 +99,50 @@ obj LoginModal {
     }
 
     can perform_login with entry (login_input: str, password: str, remember_me: bool) {
-        # Integration with main app
-        print(f"Logging in user: {login_input}");
-        
-        if (self.app_instance) {
-            # Call the main app's login method
-            self.app_instance.handle_modal_login(login_input, password, remember_me);
-        } else {
-            print("❌ No app instance available for login");
+        try {
+            # Direct integration with FastAPI service
+            print(f"🔐 Logging in user: {login_input}");
+            
+            # Create FastAPI service instance
+            api_service = services.FastAPIService();
+            
+            # Call FastAPI login endpoint
+            login_response = api_service.login(login_input, password);
+            
+            if (login_response["success"]) {
+                print("✅ Login successful");
+                # Store auth token in localStorage for persistence
+                auth_token = login_response["token"];
+                print(f"🔑 Auth token received: {auth_token[:20]}...");
+                
+                # Notify the app that login was successful
+                # In a real implementation, you'd want a callback system
+                self.on_login_success(login_response);
+            } else {
+                print(f"❌ Login failed: {login_response.get('error', 'Unknown error')}");
+                self.on_login_error(login_response.get('error', 'Login failed'));
+            }
+            
+        } catch (error) {
+            print(f"❌ Login error: {error}");
+            self.on_login_error("Connection error. Please try again.");
         }
         
         # Close modal
         self.close_modal();
+    }
+    
+    # Callback methods for login success/error
+    can on_login_success with entry (login_response: dict) {
+        print("🎉 Login successful - updating app state");
+        # This would be called by a global app or state manager
+        # In a real implementation, you'd dispatch an event or call a callback
+    }
+    
+    can on_login_error with entry (error_message: str) {
+        print(f"🚨 Login error: {error_message}");
+        # This would show an error message to the user
+        # In a real implementation, you'd show a toast notification
     }
 
     can close_modal with entry (event: dict = None) {
@@ -191,6 +225,17 @@ obj RegisterModal {
             </div>
             
             <div className="form-group">
+                <label className="form-label">Username</label>
+                <input 
+                    type="text" 
+                    className="form-input" 
+                    placeholder="Choose a username"
+                    name="username"
+                    required
+                />
+            </div>
+            
+            <div className="form-group">
                 <label className="form-label">Password</label>
                 <input 
                     type="password" 
@@ -252,6 +297,7 @@ obj RegisterModal {
         user_data = {
             "first_name": form_data.get("first_name"),
             "last_name": form_data.get("last_name"),
+            "username": form_data.get("username"),  # Added username field
             "email": form_data.get("email"),
             "password": form_data.get("password"),
             "confirm_password": form_data.get("confirm_password"),
@@ -272,18 +318,42 @@ obj RegisterModal {
     }
 
     can perform_register with entry (user_data: dict) {
-        # Integration with main app
-        print(f"Registering user: {user_data.email}");
-        
-        if (self.app_instance) {
-            # Call the main app's register method
-            self.app_instance.handle_modal_register(user_data);
-        } else {
-            print("❌ No app instance available for registration");
+        try {
+            # Direct integration with FastAPI service
+            print(f"📝 Registering user: {user_data.email}");
+            
+            # Create FastAPI service instance
+            api_service = services.FastAPIService();
+            
+            # Call FastAPI register endpoint
+            register_response = api_service.register(user_data);
+            
+            if (register_response["success"]) {
+                print("✅ Registration successful");
+                self.on_register_success(register_response);
+            } else {
+                print(f"❌ Registration failed: {register_response.get('error', 'Unknown error')}");
+                self.on_register_error(register_response.get('error', 'Registration failed'));
+            }
+            
+        } catch (error) {
+            print(f"❌ Registration error: {error}");
+            self.on_register_error("Connection error. Please try again.");
         }
         
-        # Close modal after successful registration
+        # Close modal after processing
         self.close_modal();
+    }
+    
+    # Callback methods for register success/error
+    can on_register_success with entry (register_response: dict) {
+        print("🎉 Registration successful - redirecting to login");
+        # This would show a success message and redirect to login
+    }
+    
+    can on_register_error with entry (error_message: str) {
+        print(f"🚨 Registration error: {error_message}");
+        # This would show an error message to the user
     }
 
     can close_modal with entry (event: dict = None) {
@@ -371,18 +441,42 @@ obj ForgotPasswordModal {
     }
 
     can perform_forgot_password with entry (email: str) {
-        # Integration with main app
-        print(f"Requesting password reset for: {email}");
-        
-        if (self.app_instance) {
-            # Call the main app's forgot password method
-            self.app_instance.handle_modal_forgot_password(email);
-        } else {
-            print("❌ No app instance available for forgot password");
+        try {
+            # Direct integration with FastAPI service
+            print(f"🔑 Requesting password reset for: {email}");
+            
+            # Create FastAPI service instance
+            api_service = services.FastAPIService();
+            
+            # Call FastAPI forgot password endpoint
+            forgot_response = api_service.forgot_password(email);
+            
+            if (forgot_response["success"]) {
+                print("✅ Password reset email sent successfully");
+                self.on_forgot_password_success(forgot_response);
+            } else {
+                print(f"❌ Failed to send password reset email: {forgot_response.get('error', 'Unknown error')}");
+                self.on_forgot_password_error(forgot_response.get('error', 'Failed to send reset email'));
+            }
+            
+        } catch (error) {
+            print(f"❌ Forgot password error: {error}");
+            self.on_forgot_password_error("Connection error. Please try again.");
         }
         
         # Close modal after processing
         self.close_modal();
+    }
+    
+    # Callback methods for forgot password success/error
+    can on_forgot_password_success with entry (forgot_response: dict) {
+        print("🔑 Password reset email sent! Check your inbox.");
+        # This would show a success message to user
+    }
+    
+    can on_forgot_password_error with entry (error_message: str) {
+        print(f"🚨 Forgot password error: {error_message}");
+        # This would show an error message to user
     }
 
     can close_modal with entry (event: dict = None) {
@@ -492,18 +586,42 @@ obj PasswordResetModal {
     }
 
     can perform_password_reset with entry (new_password: str) {
-        # Integration with main app
-        print(f"Resetting password with token: {self.reset_token[:10]}...");
-        
-        if (self.app_instance) {
-            # Call the main app's password reset method
-            self.app_instance.handle_modal_password_reset(new_password, self.reset_token);
-        } else {
-            print("❌ No app instance available for password reset");
+        try {
+            # Direct integration with FastAPI service
+            print(f"🔒 Resetting password with token: {self.reset_token[:10]}...");
+            
+            # Create FastAPI service instance
+            api_service = services.FastAPIService();
+            
+            # Call FastAPI reset password endpoint
+            reset_response = api_service.reset_password(self.reset_token, new_password);
+            
+            if (reset_response["success"]) {
+                print("✅ Password reset successfully");
+                self.on_password_reset_success(reset_response);
+            } else {
+                print(f"❌ Failed to reset password: {reset_response.get('error', 'Unknown error')}");
+                self.on_password_reset_error(reset_response.get('error', 'Failed to reset password'));
+            }
+            
+        } catch (error) {
+            print(f"❌ Password reset error: {error}");
+            self.on_password_reset_error("Connection error. Please try again.");
         }
         
         # Close modal after processing
         self.close_modal();
+    }
+    
+    # Callback methods for password reset success/error
+    can on_password_reset_success with entry (reset_response: dict) {
+        print("🔒 Password reset successful! You can now login.");
+        # This would show success message and redirect to login
+    }
+    
+    can on_password_reset_error with entry (error_message: str) {
+        print(f"🚨 Password reset error: {error_message}");
+        # This would show an error message to user
     }
 
     can close_modal with entry (event: dict = None) {
