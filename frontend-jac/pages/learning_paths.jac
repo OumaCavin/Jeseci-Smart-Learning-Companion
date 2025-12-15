@@ -6,26 +6,49 @@ Display and manage personalized learning paths
 obj LearningPathsPage {
     
     can render with entry (paths_data: list) -> div {
+        # Calculate stats dynamically from paths_data
+        active_count = 0;
+        total_progress = 0.0;
+        total_time_spent = 0;
+        total_time_remaining = 0;
+        
+        for (path in paths_data) {
+            progress = path.get("progress", 0);
+            if (progress > 0 and progress < 1) { 
+                active_count += 1; 
+            }
+            total_progress += progress;
+            
+            # Extract time estimates if available
+            time_spent = path.get("time_spent_hours", 0);
+            time_remaining = path.get("estimated_duration_hours", 0) - time_spent;
+            total_time_spent += time_spent;
+            total_time_remaining += max(0, time_remaining);
+        }
+        
+        avg_progress = int((total_progress / paths_data.length * 100)) if paths_data.length > 0 else 0;
+
         <div className="learning-paths-page">
-            {self.render_paths_header()}
-            {self.render_paths_overview()}
+            # Pass calculated stats to header
+            {self.render_paths_header(active_count, avg_progress)} 
+            {self.render_paths_overview(avg_progress, total_time_spent, total_time_remaining)}
             {self.render_paths_grid(paths_data)}
             {self.render_create_path_section()}
         </div>
     }
 
-    can render_paths_header with entry -> div {
+    can render_paths_header with entry (active_count: int, avg_progress: int) -> div {
         <div className="paths-header">
             <h2>🛤️ Learning Paths</h2>
             <p>Structured journeys to master new skills and concepts</p>
             <div className="path-stats">
-                <span className="stat">3 Active Paths</span>
-                <span className="stat">67% Overall Progress</span>
+                <span className="stat">{active_count} Active Paths</span>
+                <span className="stat">{avg_progress}% Overall Progress</span>
             </div>
         </div>
     }
 
-    can render_paths_overview with entry -> div {
+    can render_paths_overview with entry (avg_progress: int, time_spent: float, time_remaining: float) -> div {
         <div className="paths-overview">
             <div className="overview-card">
                 <h3>📈 Progress Overview</h3>
@@ -35,7 +58,7 @@ obj LearningPathsPage {
                         <circle className="progress-bar" cx="60" cy="60" r="50" />
                     </svg>
                     <div className="progress-text">
-                        <span className="progress-percentage">67%</span>
+                        <span className="progress-percentage">{avg_progress}%</span>
                         <span className="progress-label">Complete</span>
                     </div>
                 </div>
@@ -45,11 +68,11 @@ obj LearningPathsPage {
                 <h3>⏱️ Time Investment</h3>
                 <div className="time-stats">
                     <div className="time-item">
-                        <span className="time-value">24.5h</span>
+                        <span className="time-value">{time_spent}h</span>
                         <span className="time-label">Spent</span>
                     </div>
                     <div className="time-item">
-                        <span className="time-value">15.5h</span>
+                        <span className="time-value">{time_remaining}h</span>
                         <span className="time-label">Remaining</span>
                     </div>
                 </div>
