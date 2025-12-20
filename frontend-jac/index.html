@@ -1315,18 +1315,14 @@
                 // Open AI lesson modal with loading state
                 openAILessonModal(conceptId, conceptName);
                 
-                // Fetch AI-generated lesson
-                const response = await fetch(`/api/v1/concepts/${conceptId}/lesson`, {
-                    headers: {
-                        'Authorization': `Bearer ${window.JAC_STORAGE.getItem('token')}`
-                    }
-                });
+                // Fetch AI-generated lesson using JAC_HTTP wrapper
+                const response = await window.JAC_HTTP.get(`/concepts/${conceptId}/lesson`);
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.success) {
+                    throw new Error(response.error || `HTTP error! status: ${response.status}`);
                 }
 
-                const data = await response.json();
+                const data = response.data;
                 
                 // Update modal with generated lesson content
                 displayAILesson(data.content, data.source, conceptName);
@@ -1413,18 +1409,11 @@
             if (!conceptId) return;
 
             try {
-                // Update progress via the progress API
-                await fetch(`/api/v1/progress/concepts/${conceptId}/update`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${window.JAC_STORAGE.getItem('token')}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        status: 'completed',
-                        progress_percent: 100,
-                        time_spent: 15 // Estimated time spent
-                    })
+                // Update progress via the progress API using JAC_HTTP wrapper
+                await window.JAC_HTTP.post(`/progress/concepts/${conceptId}/update`, {
+                    status: 'completed',
+                    progress_percent: 100,
+                    time_spent: 15 // Estimated time spent
                 });
 
                 showSuccessMessage('🎉 Lesson completed! Progress updated.');
@@ -1494,18 +1483,14 @@
             footerElement.style.display = 'none';
 
             try {
-                // Load content from API
-                const contentResponse = await fetch(`/api/v1/content/content/${contentId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${window.JAC_STORAGE.getItem('token')}`
-                    }
-                });
+                // Load content from API using JAC_HTTP wrapper
+                const contentResponse = await window.JAC_HTTP.get(`/content/content/${contentId}`);
 
-                if (!contentResponse.ok) {
-                    throw new Error(`HTTP error! status: ${contentResponse.status}`);
+                if (!contentResponse.success) {
+                    throw new Error(contentResponse.error || `HTTP error! status: ${contentResponse.status}`);
                 }
 
-                const content = await contentResponse.json();
+                const content = contentResponse.data;
                 
                 // Update modal with content
                 titleElement.textContent = content.title;
@@ -1557,15 +1542,11 @@
                 // Show footer with actions
                 footerElement.style.display = 'flex';
                 
-                // Update progress info
-                const progressResponse = await fetch(`/api/v1/content/content/${contentId}/progress`, {
-                    headers: {
-                        'Authorization': `Bearer ${window.JAC_STORAGE.getItem('token')}`
-                    }
-                });
+                // Update progress info using JAC_HTTP wrapper
+                const progressResponse = await window.JAC_HTTP.get(`/content/content/${contentId}/progress`);
                 
-                if (progressResponse.ok) {
-                    const progress = await progressResponse.json();
+                if (progressResponse.success) {
+                    const progress = progressResponse.data;
                     const progressInfo = document.getElementById('progress-info');
                     progressInfo.innerHTML = `
                         <strong>Progress:</strong> ${Math.round(progress.progress_percent)}% 
@@ -1623,19 +1604,12 @@
             return content;
         }
 
-        // Update content progress
+        // Update content progress using JAC_HTTP wrapper
         async function updateContentProgress(contentId) {
             try {
-                await fetch(`/api/v1/content/content/${contentId}/progress`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${window.JAC_STORAGE.getItem('token')}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        status: 'in_progress',
-                        progress_percent: 10 // Mark as started
-                    })
+                await window.JAC_HTTP.post(`/content/content/${contentId}/progress`, {
+                    status: 'in_progress',
+                    progress_percent: 10 // Mark as started
                 });
             } catch (error) {
                 console.error('Error updating progress:', error);
