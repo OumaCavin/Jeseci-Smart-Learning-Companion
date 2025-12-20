@@ -125,7 +125,7 @@ async def get_progress_dashboard(
             "total_items": len(concept_list),
             "displaying": min(10, len(concept_list)),  # Show up to 10 items
             "has_more": len(concept_list) > 10
-        }
+        },
         "weekly_goals": {
             "target": 5, 
             "completed": round(total_minutes / 60, 1),
