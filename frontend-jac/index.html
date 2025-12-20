@@ -1012,7 +1012,7 @@
                                 </div>
                             ` : ''}
                             
-                            <button class="cta-btn ${path.progress === 0 ? 'primary' : 'secondary'}" style="width: 100%;" onclick="startLearningPath(${path.id}, '${path.title}')">
+                            <button class="cta-btn ${path.progress === 0 ? 'primary' : 'secondary'}" style="width: 100%;" onclick="startLearningPath('${path.id}', '${path.title}')">
                                 ${path.progress === 0 ? '🚀 Start Path' : path.progress === 100 ? '✅ Completed' : '▶️ Continue'}
                             </button>
                         </div>
