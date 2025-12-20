@@ -674,6 +674,9 @@
                                             <button class="nav-link" onclick="showConcepts()">📚 Concepts</button>
                                         </li>
                                         <li class="nav-item">
+                                            <button class="nav-link" onclick="showQuizzes()">🧩 Quizzes</button>
+                                        </li>
+                                        <li class="nav-item">
                                             <button class="nav-link" onclick="showLearningPaths()">🛤️ Learning Paths</button>
                                         </li>
                                         <li class="nav-item">
@@ -905,14 +908,21 @@
             mainContent.innerHTML = '<div style="text-align:center; padding: 2rem;"><div class="loading-spinner"></div> Loading concepts...</div>';
 
             try {
+                console.log('📚 Fetching concepts and progress data...');
+                
                 // Fetch concepts and user progress data in parallel
                 const [conceptsResponse, progressResponse] = await Promise.all([
                     window.JAC_HTTP.get('/concepts'),
                     window.JAC_HTTP.get('/progress')
                 ]);
                 
+                console.log('📚 Concepts response:', conceptsResponse);
+                console.log('📈 Progress response:', progressResponse);
+                
                 const concepts = conceptsResponse.success ? conceptsResponse.data : [];
                 const userProgress = progressResponse.success ? progressResponse.data.concept_progress : [];
+                
+                console.log(`📚 Loaded ${concepts.length} concepts, ${userProgress.length} progress records`);
                 
                 // Create a map of concept_id to progress status for quick lookup
                 const progressMap = {};
@@ -936,7 +946,7 @@
                     const progressPercent = progress ? progress.progress_percent || 0 : 0;
                     
                     let buttonText = 'Start Learning';
-                    let buttonClass = 'cta-btn secondary';
+                    let buttonClass = 'cta-btn primary'; // Changed to primary for better visibility
                     let buttonAction = `onclick="startLearningConcept('${concept.concept_id}', '${concept.display_name}')`;
                     
                     if (isCompleted) {
@@ -969,6 +979,17 @@
                     `;
                 });
 
+                if (concepts.length === 0) {
+                    conceptsHtml += `
+                        <div style="text-align: center; padding: 3rem; color: #718096;">
+                            <div style="font-size: 4rem; margin-bottom: 1rem;">📚</div>
+                            <h3>No Concepts Available</h3>
+                            <p>There are no concepts in the database yet.</p>
+                            <button class="cta-btn primary" onclick="createNewConcept()">➕ Create First Concept</button>
+                        </div>
+                    `;
+                }
+
                 conceptsHtml += '</div></div>';
                 mainContent.innerHTML = conceptsHtml;
                 
@@ -978,6 +999,292 @@
             } catch (error) {
                 mainContent.innerHTML = `<div class="jac-error">Failed to load concepts: ${error.message}</div>`;
             }
+        }
+
+        // Quizzes section
+        async function showQuizzes() {
+            console.log('🧩 Showing quizzes page...');
+            const mainContent = document.querySelector('.main-content');
+            
+            // Show loading state
+            mainContent.innerHTML = '<div style="text-align:center; padding: 2rem;"><div class="loading-spinner"></div> Loading quizzes...</div>';
+
+            try {
+                // Fetch quizzes from the new API
+                const response = await window.JAC_HTTP.get('/quizzes');
+                
+                if (response.success) {
+                    const quizzes = response.data;
+                    
+                    // Render the Quizzes Grid
+                    let quizzesHtml = `
+                        <div class="quizzes-page" style="padding: 2rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                                <h2>🧩 Quiz Center</h2>
+                                <div style="color: #718096;">Test your knowledge and earn achievements!</div>
+                            </div>
+                            <div class="features-grid" style="grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));">
+                    `;
+
+                    quizzes.forEach(quiz => {
+                        const canAttempt = quiz.attempts_used < quiz.max_attempts;
+                        const buttonText = quiz.user_passed ? '✅ Retake Quiz' : canAttempt ? '🎯 Start Quiz' : '⚠️ Max Attempts Reached';
+                        const buttonClass = quiz.user_passed ? 'cta-btn completed' : canAttempt ? 'cta-btn primary' : 'cta-btn secondary';
+                        const buttonAction = canAttempt ? `onclick="startQuiz('${quiz.quiz_id}')"` : '';
+                        
+                        quizzesHtml += `
+                            <div class="feature-card" style="border-left: 4px solid #FF6B6B; text-align: left;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="background: #e2e8f0; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">${quiz.quiz_type}</span>
+                                    <span style="color: #FF6B6B; font-weight: bold;">${quiz.difficulty_level}</span>
+                                </div>
+                                <h3 style="margin: 1rem 0;">${quiz.title}</h3>
+                                <p style="color: #4a5568; font-size: 0.9rem; margin-bottom: 1rem;">${quiz.description || 'No description available'}</p>
+                                
+                                <div style="display: flex; gap: 1rem; margin-bottom: 1rem; font-size: 0.85rem; color: #666;">
+                                    <span>⏱️ ${quiz.time_limit ? quiz.time_limit + ' min' : 'No limit'}</span>
+                                    <span>📝 ${quiz.question_count} questions</span>
+                                    <span>🎯 ${Math.round(quiz.passing_score * 100)}% to pass</span>
+                                </div>
+                                
+                                ${quiz.user_best_score > 0 ? `
+                                    <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(102, 126, 234, 0.1); border-radius: 5<small style="color: #667eeapx;">
+                                        ; font-weight: 600;">Your Best: ${Math.round(quiz.user_best_score * 100)}%</small>
+                                        ${quiz.user_passed ? ' <span style="color: #4CAF50;">✅ Passed</span>' : ''}
+                                    </div>
+                                ` : ''}
+                                
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <small style="color: #718096;">Attempts: ${quiz.attempts_used}/${quiz.max_attempts}</small>
+                                    <button class="${buttonClass}" style="width: auto; padding: 0.5rem 1rem;" ${buttonAction}>
+                                        ${buttonText}
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    quizzesHtml += '</div></div>';
+                    mainContent.innerHTML = quizzesHtml;
+                    
+                    // Update active nav state
+                    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+                    document.querySelector('button[onclick="showQuizzes()"]').classList.add('active');
+                } else {
+                    throw new Error(response.error || 'Failed to fetch quizzes');
+                }
+            } catch (error) {
+                console.error('Failed to load quizzes:', error);
+                mainContent.innerHTML = `
+                    <div class="jac-error">
+                        <h3>❌ Unable to Load Quizzes</h3>
+                        <p>Could not fetch quiz data. Please try again later.</p>
+                        <p style="font-size: 0.9rem; color: #666;">Error: ${error.message}</p>
+                        <button class="cta-btn primary" onclick="showQuizzes()" style="margin-top: 1rem;">🔄 Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Start quiz function
+        async function startQuiz(quizId) {
+            try {
+                console.log(`🎯 Starting quiz: ${quizId}`);
+                
+                // Start the quiz
+                const response = await window.JAC_HTTP.post(`/quizzes/${quizId}/start`);
+                
+                if (!response.success) {
+                    throw new Error(response.error || 'Failed to start quiz');
+                }
+                
+                const quizData = response.data;
+                
+                // Open quiz modal
+                openQuizModal(quizData);
+                
+            } catch (error) {
+                console.error('Error starting quiz:', error);
+                showNotification(`❌ Failed to start quiz: ${error.message}`, 'error');
+            }
+        }
+
+        // Open quiz modal
+        function openQuizModal(quizData) {
+            const modal = document.getElementById('ai-lesson-modal');
+            const titleElement = document.getElementById('ai-lesson-title');
+            const metaElement = document.getElementById('ai-lesson-meta');
+            const bodyElement = document.getElementById('ai-lesson-body');
+            const footerElement = document.getElementById('ai-lesson-footer');
+
+            // Show modal
+            modal.classList.add('active');
+            titleElement.textContent = `🧩 Quiz: ${quizData.quiz_title}`;
+            metaElement.textContent = `Attempt #${quizData.attempt_number} • ${quizData.time_limit ? quizData.time_limit + ' minutes' : 'No time limit'}`;
+            
+            // Render quiz questions
+            let quizHtml = `
+                <div class="quiz-container">
+                    <div class="quiz-info" style="background: rgba(102, 126, 234, 0.1); padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+                        <p style="margin: 0; color: #667eea; font-weight: 600;">📝 Answer all questions below. Your responses will be automatically saved.</p>
+                    </div>
+                    <div class="quiz-questions">
+            `;
+            
+            quizData.questions.forEach((question, index) => {
+                quizHtml += `
+                    <div class="quiz-question" style="margin-bottom: 2rem; padding: 1.5rem; border: 1px solid #e2e8f0; border-radius: 8px;">
+                        <h4 style="margin: 0 0 1rem 0; color: #2d3748;">Question ${index + 1}</h4>
+                        <p style="margin: 0 0 1rem 0; line-height: 1.6;">${question.text || question.question || 'Question text missing'}</p>
+                        
+                        <div class="quiz-options" style="margin-left: 1rem;">
+                `;
+                
+                if (question.options && Array.isArray(question.options)) {
+                    question.options.forEach((option, optIndex) => {
+                        const optionId = `q${index}_opt${optIndex}`;
+                        quizHtml += `
+                            <div style="margin-bottom: 0.5rem;">
+                                <input type="radio" id="${optionId}" name="question_${index}" value="${option}" style="margin-right: 0.5rem;">
+                                <label for="${optionId}" style="cursor: pointer;">${option}</label>
+                            </div>
+                        `;
+                    });
+                } else if (question.type === 'text') {
+                    quizHtml += `
+                        <input type="text" id="question_${index}" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 5px;" placeholder="Type your answer here...">
+                    `;
+                } else {
+                    quizHtml += `<p style="color: #e53e3e; font-style: italic;">⚠️ Question format not supported</p>`;
+                }
+                
+                quizHtml += `
+                        </div>
+                    </div>
+                `;
+            });
+            
+            quizHtml += `
+                    </div>
+                    <div class="quiz-submit" style="text-align: center; margin-top: 2rem;">
+                        <button class="cta-btn primary" onclick="submitQuiz('${quizData.attempt_id}')" style="padding: 1rem 2rem; font-size: 1.1rem;">
+                            ✅ Submit Quiz
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            bodyElement.innerHTML = quizHtml;
+            footerElement.style.display = 'none';
+            
+            // Store quiz data for submission
+            window.currentQuizData = quizData;
+        }
+
+        // Submit quiz function
+        async function submitQuiz(attemptId) {
+            try {
+                // Collect all answers
+                const responses = {};
+                const questions = window.currentQuizData.questions;
+                
+                questions.forEach((question, index) => {
+                    if (question.options && Array.isArray(question.options)) {
+                        // Radio button question
+                        const selected = document.querySelector(`input[name="question_${index}"]:checked`);
+                        responses[question.id || `q_${index}`] = selected ? selected.value : '';
+                    } else {
+                        // Text input question
+                        const input = document.getElementById(`question_${index}`);
+                        responses[question.id || `q_${index}`] = input ? input.value : '';
+                    }
+                });
+                
+                // Calculate time taken (simplified)
+                const startTime = new Date(window.currentQuizData.started_at).getTime();
+                const timeTaken = Math.floor((Date.now() - startTime) / 1000 / 60); // minutes
+                
+                // Submit quiz
+                const response = await window.JAC_HTTP.post(`/quizzes/attempts/${attemptId}/submit`, {
+                    quiz_id: window.currentQuizData.quiz_id,
+                    responses: responses,
+                    time_taken: timeTaken
+                });
+                
+                if (!response.success) {
+                    throw new Error(response.error || 'Failed to submit quiz');
+                }
+                
+                const result = response.data;
+                
+                // Show results
+                displayQuizResults(result);
+                
+            } catch (error) {
+                console.error('Error submitting quiz:', error);
+                showNotification(`❌ Failed to submit quiz: ${error.message}`, 'error');
+            }
+        }
+
+        // Display quiz results
+        function displayQuizResults(result) {
+            const modal = document.getElementById('ai-lesson-modal');
+            const titleElement = document.getElementById('ai-lesson-title');
+            const metaElement = document.getElementById('ai-lesson-meta');
+            const bodyElement = document.getElementById('ai-lesson-body');
+            const footerElement = document.getElementById('ai-lesson-footer');
+
+            titleElement.textContent = `🎯 Quiz Results`;
+            
+            const scoreColor = result.passed ? '#4CAF50' : '#FF6B6B';
+            const scoreEmoji = result.passed ? '🎉' : '📚';
+            
+            metaElement.innerHTML = `
+                <span style="color: ${scoreColor}; font-weight: 600;">
+                    ${scoreEmoji} Score: ${Math.round(result.percentage * 100)}% (${result.score}/${result.max_score})
+                </span>
+            `;
+            
+            bodyElement.innerHTML = `
+                <div class="quiz-results">
+                    <div style="text-align: center; margin-bottom: 2rem;">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">${scoreEmoji}</div>
+                        <h3 style="color: ${scoreColor}; margin: 0;">${result.passed ? 'Congratulations!' : 'Keep Learning!'}</h3>
+                        <p style="color: #718096; margin: 0.5rem 0;">Time taken: ${result.time_taken} minutes</p>
+                    </div>
+                    
+                    ${result.feedback ? `
+                        <div style="background: rgba(102, 126, 234, 0.1); padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+                            <h4 style="margin: 0 0 1rem 0; color: #667eea;">📝 Personalized Feedback</h4>
+                            <p style="margin: 0 0 1rem 0; font-weight: 600;">${result.feedback.overall || 'Great work!'}</p>
+                            
+                            ${result.feedback.strengths && result.feedback.strengths.length > 0 ? `
+                                <div style="margin-bottom: 1rem;">
+                                    <strong style="color: #4CAF50;">✅ Strengths:</strong>
+                                    <ul style="margin: 0.5rem 0 0 1rem;">
+                                        ${result.feedback.strengths.map(strength => `<li>${strength}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : ''}
+                            
+                            ${result.feedback.improvements && result.feedback.improvements.length > 0 ? `
+                                <div>
+                                    <strong style="color: #FF6B6B;">📚 Areas to improve:</strong>
+                                    <ul style="margin: 0.5rem 0 0 1rem;">
+                                        ${result.feedback.improvements.map(improvement => `<li>${improvement}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            footerElement.innerHTML = `
+                <button class="cta-btn secondary" onclick="closeAILessonModal()" style="margin-right: 1rem;">Close</button>
+                ${result.passed ? '<button class="cta-btn primary" onclick="showQuizzes()">🏆 More Quizzes</button>' : '<button class="cta-btn primary" onclick="showConcepts()">📚 Study More</button>'}
+            `;
+            footerElement.style.display = 'block';
         }
 
         // Global variable to store all learning paths for filtering
@@ -2049,10 +2356,123 @@
         // Start learning with AI-generated lesson
         async function startLearningConcept(conceptId, conceptName) {
             try {
-                // Open AI lesson modal with loading state
+                // Check if there are any quizzes available for this concept
+                let quizzes = [];
+                try {
+                    const quizResponse = await window.JAC_HTTP.get(`/quizzes?concept_id=${conceptId}`);
+                    if (quizResponse.success) {
+                        quizzes = quizResponse.data.filter(q => q.attempts_used < q.max_attempts);
+                    }
+                } catch (error) {
+                    console.log('No quizzes available for this concept:', error);
+                }
+
+                // If quizzes are available, show choice modal
+                if (quizzes.length > 0) {
+                    showLearningChoiceModal(conceptId, conceptName, quizzes);
+                } else {
+                    // No quizzes available, just show AI lesson
+                    openAILessonModal(conceptId, conceptName);
+                    
+                    // Fetch AI-generated lesson using JAC_HTTP wrapper
+                    const response = await window.JAC_HTTP.get(`/concepts/${conceptId}/lesson`);
+
+                    if (!response.success) {
+                        throw new Error(response.error || `HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = response.data;
+                    
+                    // Update modal with generated lesson content
+                    displayAILesson(data.content, data.source, conceptName);
+                }
+                
+            } catch (error) {
+                console.error('Error starting concept learning:', error);
+                showNotification(`❌ Failed to start learning: ${error.message}`, 'error');
+            }
+        }
+
+        // Show learning choice modal
+        function showLearningChoiceModal(conceptId, conceptName, quizzes) {
+            const modal = document.getElementById('ai-lesson-modal');
+            const titleElement = document.getElementById('ai-lesson-title');
+            const metaElement = document.getElementById('ai-lesson-meta');
+            const bodyElement = document.getElementById('ai-lesson-body');
+            const footerElement = document.getElementById('ai-lesson-footer');
+
+            modal.classList.add('active');
+            titleElement.textContent = `🎓 Learning Options: ${conceptName}`;
+            metaElement.textContent = 'Choose how you want to learn this concept';
+            
+            let choiceHtml = `
+                <div class="learning-choice-container">
+                    <div style="text-align: center; margin-bottom: 2rem;">
+                        <p style="color: #718096; font-size: 1.1rem;">You have multiple learning options available for this concept:</p>
+                    </div>
+                    
+                    <div style="display: grid; gap: 1.5rem; margin-bottom: 2rem;">
+                        <!-- AI Lesson Option -->
+                        <div class="learning-option" style="border: 2px solid #667eea; border-radius: 10px; padding: 1.5rem; text-align: center; cursor: pointer;" onclick="startAILesson('${conceptId}', '${conceptName}')">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">🤖</div>
+                            <h3 style="color: #667eea; margin: 0 0 0.5rem 0;">AI-Generated Lesson</h3>
+                            <p style="color: #718096; margin: 0; font-size: 0.9rem;">Personalized educational content generated by AI</p>
+                            <div style="margin-top: 1rem;">
+                                <span style="background: #667eea; color: white; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem;">Interactive</span>
+                                <span style="background: #667eea; color: white; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; margin-left: 0.5rem;">Personalized</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Quiz Options -->
+                        <div class="quiz-option" style="border: 2px solid #FF6B6B; border-radius: 10px; padding: 1.5rem;">
+                            <div style="text-align: center; margin-bottom: 1rem;">
+                                <div style="font-size: 3rem; margin-bottom: 0.5rem;">🧩</div>
+                                <h3 style="color: #FF6B6B; margin: 0 0 0.5rem 0;">Practice Quizzes</h3>
+                                <p style="color: #718096; margin: 0; font-size: 0.9rem;">Test your knowledge and earn achievements</p>
+                            </div>
+                            
+                            <div style="display: grid; gap: 0.8rem;">
+            `;
+            
+            quizzes.forEach(quiz => {
+                choiceHtml += `
+                    <div style="background: rgba(255, 107, 107, 0.1); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255, 107, 107, 0.3);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="color: #2d3748;">${quiz.title}</strong>
+                                <div style="font-size: 0.85rem; color: #718096;">${quiz.question_count} questions • ${quiz.difficulty_level}</div>
+                            </div>
+                            <button class="cta-btn primary" onclick="startQuiz('${quiz.quiz_id}'); closeAILessonModal();" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                                🎯 Start Quiz
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            choiceHtml += `
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; color: #718096; font-size: 0.9rem;">
+                        💡 <strong>Tip:</strong> Start with AI lessons for learning, then take quizzes to test your knowledge!
+                    </div>
+                </div>
+            `;
+            
+            bodyElement.innerHTML = choiceHtml;
+            footerElement.style.display = 'none';
+        }
+
+        // Start AI lesson function
+        async function startAILesson(conceptId, conceptName) {
+            try {
+                closeAILessonModal();
+                await new Promise(resolve => setTimeout(resolve, 300)); // Small delay for smooth transition
+                
                 openAILessonModal(conceptId, conceptName);
                 
-                // Fetch AI-generated lesson using JAC_HTTP wrapper
                 const response = await window.JAC_HTTP.get(`/concepts/${conceptId}/lesson`);
 
                 if (!response.success) {
@@ -2060,15 +2480,11 @@
                 }
 
                 const data = response.data;
-                
-                // Update modal with generated lesson content
                 displayAILesson(data.content, data.source, conceptName);
                 
             } catch (error) {
                 console.error('Error generating AI lesson:', error);
-                showErrorMessage(`Failed to generate lesson for ${conceptName}: ${error.message}`);
-                
-                // Close modal on error
+                showNotification(`❌ Failed to generate lesson: ${error.message}`, 'error');
                 closeAILessonModal();
             }
         }
