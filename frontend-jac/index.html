@@ -320,6 +320,22 @@
             color: white;
         }
 
+        .cta-btn.completed {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .cta-btn.completed:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+
         .loading-spinner {
             width: 20px;
             height: 20px;
@@ -766,72 +782,113 @@
             try {
                 console.log('📊 Loading dashboard data...');
                 
-                // 1. Fetch Concepts Count
-                const conceptsResponse = await window.JAC_HTTP.get('/concepts');
+                // Fetch all data in parallel
+                const [conceptsResponse, progressResponse, learningPathsResponse] = await Promise.all([
+                    window.JAC_HTTP.get('/concepts'),
+                    window.JAC_HTTP.get('/progress'),
+                    window.JAC_HTTP.get('/learning-paths').catch(() => ({ success: false }))
+                ]);
+                
                 const conceptsCount = conceptsResponse.success ? conceptsResponse.data.length : 0;
-                
-                // 2. NEW: Fetch Real Progress Stats
-                let stats = {
-                    total_time_spent: 0,
-                    completion_rate: 0,
-                    learning_streak: 0,
-                    total_concepts_learned: 0
+                const stats = progressResponse.success ? progressResponse.data.overall_stats : {
+                    total_time_spent: 0, completion_rate: 0, learning_streak: 0, total_concepts_learned: 0
                 };
+                const conceptProgress = progressResponse.success ? progressResponse.data.concept_progress : [];
+                const learningPaths = learningPathsResponse.success ? learningPathsResponse.data : [];
                 
-                try {
-                    const progressResponse = await window.JAC_HTTP.get('/progress');
-                    if (progressResponse.success) {
-                        stats = progressResponse.data.overall_stats;
-                    }
-                } catch (e) {
-                    console.warn("Could not load progress stats, defaulting to 0");
-                }
+                // Find the most recent learning activity for "Continue Learning" section
+                const recentProgress = conceptProgress
+                    .filter(p => p.status !== 'completed')
+                    .sort((a, b) => new Date(b.last_accessed) - new Date(a.last_accessed))[0];
                 
-                // 3. Update the Dashboard HTML with REAL variables
-                const dashboardContent = document.querySelector('.welcome-content');
                 const userName = window.JAC_STORAGE.getItem('user_info')?.first_name || 'Learner';
+                const dashboardContent = document.querySelector('.welcome-content');
 
                 if (dashboardContent) {
                     dashboardContent.innerHTML = `
-                        <h2>Welcome back, ${userName}!</h2>
-                        <p>Here's your learning progress overview</p>
-                        
-                        <div class="features-grid">
-                            <div class="feature-card">
-                                <h3>📚 Concepts Available</h3>
-                                <p><strong>${conceptsCount}</strong> concepts ready for learning</p>
+                        <div style="text-align: center; margin-bottom: 3rem;">
+                            <h2>Welcome back, ${userName}!</h2>
+                            <p style="color: #718096; font-size: 1.1rem;">Ready to continue your learning journey?</p>
+                        </div>
+
+                        <!-- Big Stats Dashboard -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+                            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 15px; text-align: center; box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);">
+                                <div style="font-size: 3rem; font-weight: bold; margin-bottom: 0.5rem;">${stats.total_concepts_learned}</div>
+                                <div style="font-size: 1.1rem; opacity: 0.9;">Concepts Mastered</div>
                             </div>
-                            <div class="feature-card">
-                                <h3>🎯 Your Progress</h3>
-                                <p><strong>${stats.completion_rate}%</strong> Average Completion</p>
-                                <p style="font-size: 0.85rem; color: #666;">${stats.total_time_spent} hours spent learning</p>
+                            
+                            <div style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; padding: 2rem; border-radius: 15px; text-align: center; box-shadow: 0 8px 32px rgba(76, 175, 80, 0.3);">
+                                <div style="font-size: 3rem; font-weight: bold; margin-bottom: 0.5rem;">${stats.total_time_spent}h</div>
+                                <div style="font-size: 1.1rem; opacity: 0.9;">Hours Invested</div>
                             </div>
-                            <div class="feature-card">
-                                <h3>🔥 Learning Streak</h3>
-                                <p><strong>${stats.learning_streak} Days</strong> Active</p>
-                                <p style="font-size: 0.85rem; color: #666;">Keep it up!</p>
+                            
+                            <div style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; padding: 2rem; border-radius: 15px; text-align: center; box-shadow: 0 8px 32px rgba(255, 152, 0, 0.3);">
+                                <div style="font-size: 3rem; font-weight: bold; margin-bottom: 0.5rem;">${stats.learning_streak}</div>
+                                <div style="font-size: 1.1rem; opacity: 0.9;">Day Streak</div>
                             </div>
-                            <div class="feature-card">
-                                <h3>📊 Analytics</h3>
-                                <p><strong>${stats.total_concepts_learned}</strong> concepts mastered</p>
-                                <button class="cta-btn secondary" onclick="showProgress()" style="margin-top:0.5rem; width:100%">View Full Report</button>
+                            
+                            <div style="background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white; padding: 2rem; border-radius: 15px; text-align: center; box-shadow: 0 8px 32px rgba(156, 39, 176, 0.3);">
+                                <div style="font-size: 3rem; font-weight: bold; margin-bottom: 0.5rem;">${stats.completion_rate}%</div>
+                                <div style="font-size: 1.1rem; opacity: 0.9;">Completion Rate</div>
                             </div>
                         </div>
-                        
-                        <div class="cta-buttons">
+
+                        ${recentProgress ? `
+                        <!-- Continue Learning Section -->
+                        <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); padding: 2rem; border-radius: 15px; margin-bottom: 2rem; border: 1px solid rgba(102, 126, 234, 0.2);">
+                            <h3 style="margin-top: 0; color: #667eea;">🎯 Continue Learning</h3>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="margin: 0.5rem 0;">${recentProgress.concept_name}</h4>
+                                    <p style="margin: 0; color: #718096;">${recentProgress.progress_percent || 0}% complete</p>
+                                    <div style="background: rgba(102, 126, 234, 0.2); height: 8px; border-radius: 4px; margin-top: 0.5rem; width: 200px;">
+                                        <div style="background: linear-gradient(45deg, #667eea, #764ba2); height: 100%; width: ${recentProgress.progress_percent || 0}%; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                                <button class="cta-btn primary" onclick="startLearningConcept('${recentProgress.concept_id}', '${recentProgress.concept_name}')">
+                                    ▶️ Continue
+                                </button>
+                            </div>
+                        </div>
+                        ` : `
+                        <!-- No Recent Activity -->
+                        <div style="background: rgba(76, 175, 80, 0.1); padding: 2rem; border-radius: 15px; margin-bottom: 2rem; border: 1px solid rgba(76, 175, 80, 0.2); text-align: center;">
+                            <h3 style="margin-top: 0; color: #4CAF50;">🚀 Ready to Start?</h3>
+                            <p style="color: #718096;">Begin your learning journey with any concept from our library</p>
+                            <button class="cta-btn primary" onclick="showConcepts()" style="margin-top: 1rem;">
+                                Browse Concepts
+                            </button>
+                        </div>
+                        `}
+
+                        <!-- Recent Activity List -->
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="color: #4a5568;">📈 Recent Activity</h3>
+                            <div style="background: white; border-radius: 10px; padding: 1rem; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                                ${conceptProgress.slice(0, 3).map(progress => `
+                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f0f0f0;">
+                                        <div>
+                                            <strong>${progress.concept_name}</strong>
+                                            <div style="color: #718096; font-size: 0.9rem;">${progress.status === 'completed' ? '✅ Completed' : `▶️ ${progress.progress_percent || 0}% complete`}</div>
+                                        </div>
+                                        <div style="color: #718096; font-size: 0.8rem;">${new Date(progress.last_accessed).toLocaleDateString()}</div>
+                                    </div>
+                                `).join('') || '<p style="text-align: center; color: #718096; padding: 2rem;">No recent activity</p>'}
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="cta-buttons" style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 2rem;">
                             <button class="cta-btn primary" onclick="showConcepts()">
-                                Start Learning
+                                📚 Browse Library
                             </button>
                             <button class="cta-btn secondary" onclick="showProgress()">
-                                View Progress
+                                📊 View Analytics
                             </button>
-                        </div>
-                        
-                        <div style="margin-top: 2rem; padding: 1rem; background: rgba(76, 175, 80, 0.1); border-radius: 10px; border: 1px solid #4CAF50;">
-                            <h4>🔗 Backend Integration Status</h4>
-                            <p>FastAPI Backend: <span style="color: #4CAF50;">✅ Connected</span></p>
-                            <p>Database: <span style="color: #4CAF50;">✅ PostgreSQL + Neo4j</span></p>
-                            <p>Live Stats: <span style="color: #4CAF50;">✅ Active</span></p>
+                            <button class="cta-btn secondary" onclick="showLearningPaths()">
+                                🛤️ Learning Paths
+                            </button>
                         </div>
                     `;
                 }
@@ -848,43 +905,76 @@
             mainContent.innerHTML = '<div style="text-align:center; padding: 2rem;"><div class="loading-spinner"></div> Loading concepts...</div>';
 
             try {
-                // Fetch from your FastAPI Backend
-                const response = await window.JAC_HTTP.get('/concepts');
+                // Fetch concepts and user progress data in parallel
+                const [conceptsResponse, progressResponse] = await Promise.all([
+                    window.JAC_HTTP.get('/concepts'),
+                    window.JAC_HTTP.get('/progress')
+                ]);
                 
-                if (response.success) {
-                    const concepts = response.data;
-                    
-                    // Render the Concept Grid
-                    let conceptsHtml = `
-                        <div class="concepts-page" style="padding: 2rem;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                                <h2>📚 Knowledge Library</h2>
-                                <button class="cta-btn secondary">+ New Concept</button>
-                            </div>
-                            <div class="features-grid" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
-                    `;
+                const concepts = conceptsResponse.success ? conceptsResponse.data : [];
+                const userProgress = progressResponse.success ? progressResponse.data.concept_progress : [];
+                
+                // Create a map of concept_id to progress status for quick lookup
+                const progressMap = {};
+                userProgress.forEach(progress => {
+                    progressMap[progress.concept_id] = progress;
+                });
+                
+                // Render the Concept Grid
+                let conceptsHtml = `
+                    <div class="concepts-page" style="padding: 2rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                            <h2>📚 Knowledge Library</h2>
+                            <button class="cta-btn secondary" onclick="createNewConcept()">+ New Concept</button>
+                        </div>
+                        <div class="features-grid" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
+                `;
 
-                    concepts.forEach(concept => {
-                        conceptsHtml += `
-                            <div class="feature-card" style="border-left: 4px solid #667eea; text-align: left;">
-                                <div style="display: flex; justify-content: space-between;">
-                                    <span style="background: #e2e8f0; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">${concept.domain}</span>
-                                    <span style="color: #667eea; font-weight: bold;">${concept.difficulty_level}</span>
+                concepts.forEach(concept => {
+                    const progress = progressMap[concept.concept_id];
+                    const isCompleted = progress && progress.status === 'completed';
+                    const progressPercent = progress ? progress.progress_percent || 0 : 0;
+                    
+                    let buttonText = 'Start Learning';
+                    let buttonClass = 'cta-btn secondary';
+                    let buttonAction = `onclick="startLearningConcept('${concept.concept_id}', '${concept.display_name}')`;
+                    
+                    if (isCompleted) {
+                        buttonText = '✅ Completed';
+                        buttonClass = 'cta-btn completed';
+                        buttonAction = `onclick="showConceptReview('${concept.concept_id}')"`;
+                    } else if (progressPercent > 0) {
+                        buttonText = `▶️ Continue (${progressPercent}%)`;
+                        buttonClass = 'cta-btn primary';
+                    }
+                    
+                    conceptsHtml += `
+                        <div class="feature-card" style="border-left: 4px solid #667eea; text-align: left;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="background: #e2e8f0; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">${concept.domain}</span>
+                                <span style="color: #667eea; font-weight: bold;">${concept.difficulty_level}</span>
+                            </div>
+                            <h3 style="margin: 1rem 0;">${concept.display_name}</h3>
+                            <p style="color: #4a5568; font-size: 0.9rem; margin-bottom: 1rem;">${concept.description}</p>
+                            ${progressPercent > 0 && !isCompleted ? `
+                                <div style="margin-bottom: 1rem;">
+                                    <div style="background: #e2e8f0; height: 6px; border-radius: 3px; overflow: hidden;">
+                                        <div style="background: linear-gradient(45deg, #667eea, #764ba2); height: 100%; width: ${progressPercent}%;"></div>
+                                    </div>
+                                    <small style="color: #718096;">${progressPercent}% complete</small>
                                 </div>
-                                <h3 style="margin: 1rem 0;">${concept.display_name}</h3>
-                                <p style="color: #4a5568; font-size: 0.9rem; margin-bottom: 1rem;">${concept.description}</p>
-                                <button class="cta-btn secondary" style="width: 100%;" onclick="startLearningConcept('${concept.concept_id}', '${concept.display_name}')">Start Learning</button>
-                            </div>
-                        `;
-                    });
+                            ` : ''}
+                            <button class="${buttonClass}" style="width: 100%;" ${buttonAction}>${buttonText}</button>
+                        </div>
+                    `;
+                });
 
-                    conceptsHtml += '</div></div>';
-                    mainContent.innerHTML = conceptsHtml;
-                    
-                    // Update active nav state
-                    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-                    document.querySelector('button[onclick="showConcepts()"]').classList.add('active');
-                }
+                conceptsHtml += '</div></div>';
+                mainContent.innerHTML = conceptsHtml;
+                
+                // Update active nav state
+                document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+                document.querySelector('button[onclick="showConcepts()"]').classList.add('active');
             } catch (error) {
                 mainContent.innerHTML = `<div class="jac-error">Failed to load concepts: ${error.message}</div>`;
             }
@@ -892,6 +982,94 @@
 
         // Global variable to store all learning paths for filtering
         let allLearningPaths = [];
+
+        // Admin function to create new concept
+        async function createNewConcept() {
+            const mainContent = document.querySelector('.main-content');
+            
+            // Simple admin form for creating concepts
+            mainContent.innerHTML = `
+                <div class="concepts-page" style="padding: 2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h2>➕ Create New Concept</h2>
+                        <button class="cta-btn secondary" onclick="showConcepts()">← Back to Library</button>
+                    </div>
+                    
+                    <div class="feature-card" style="max-width: 600px; margin: 0 auto;">
+                        <form id="newConceptForm" onsubmit="submitNewConcept(event)">
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Concept Name</label>
+                                <input type="text" id="conceptName" required style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 5px;" placeholder="e.g., Introduction to React Hooks">
+                            </div>
+                            
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Description</label>
+                                <textarea id="conceptDescription" required style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 5px; height: 100px;" placeholder="Brief description of the concept..."></textarea>
+                            </div>
+                            
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Domain</label>
+                                <select id="conceptDomain" required style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 5px;">
+                                    <option value="">Select domain</option>
+                                    <option value="Programming">Programming</option>
+                                    <option value="Web Development">Web Development</option>
+                                    <option value="Data Science">Data Science</option>
+                                    <option value="Computer Science">Computer Science</option>
+                                    <option value="JAC Programming">JAC Programming</option>
+                                </select>
+                            </div>
+                            
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Difficulty Level</label>
+                                <select id="conceptDifficulty" required style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 5px;">
+                                    <option value="">Select difficulty</option>
+                                    <option value="Beginner">Beginner</option>
+                                    <option value="Intermediate">Intermediate</option>
+                                    <option value="Advanced">Advanced</option>
+                                </select>
+                            </div>
+                            
+                            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                                <button type="submit" class="cta-btn primary" style="flex: 1;">Create Concept</button>
+                                <button type="button" class="cta-btn secondary" onclick="showConcepts()" style="flex: 1;">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function submitNewConcept(event) {
+            event.preventDefault();
+            
+            const formData = {
+                display_name: document.getElementById('conceptName').value,
+                description: document.getElementById('conceptDescription').value,
+                domain: document.getElementById('conceptDomain').value,
+                difficulty_level: document.getElementById('conceptDifficulty').value
+            };
+            
+            try {
+                // This would typically call your backend API
+                console.log('Creating new concept:', formData);
+                
+                // Simulate API call
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                showNotification('✅ Concept created successfully! (Demo - backend integration needed)', 'success');
+                showConcepts();
+                
+            } catch (error) {
+                showNotification('❌ Failed to create concept: ' + error.message, 'error');
+            }
+        }
+
+        // Function to show concept review for completed concepts
+        function showConceptReview(conceptId) {
+            // For now, just show a notification
+            // In a real implementation, this would show the concept content or review materials
+            showNotification('📖 Opening concept review...', 'info');
+        }
 
         async function showLearningPaths() {
             console.log('🛤️ Showing learning paths...');
