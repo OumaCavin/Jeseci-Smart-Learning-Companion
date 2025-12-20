@@ -1565,15 +1565,18 @@
         }
 
         // Initialize when DOM is loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeJACFrontend();
-            testBackendConnection();
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Wait for JAC Frontend to initialize and DOM to be ready
+            await initializeJACFrontend();
             
-            // Check for existing session on load
+            // Only update UI after DOM is ready
             const user = window.JAC_STORAGE.getItem('user_info');
             if (user) {
                 updateUIForLoggedInUser(user);
             }
+            
+            // Run backend connection test
+            testBackendConnection();
         });
 
         // Educational Content Functions
