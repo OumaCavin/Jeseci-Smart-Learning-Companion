@@ -47,7 +47,7 @@ async def get_progress_dashboard(
     # 2. Calculate Aggregates
     total_concepts = len(progress_records)
     completed = sum(1 for p in progress_records if p.status == 'completed')
-    total_minutes = sum(p.time_spent_minutes for p in progress_records)
+    total_minutes = sum((p.time_spent_minutes or 0) for p in progress_records)
     
     # Avoid division by zero
     completion_rate = round((completed / total_concepts * 100) if total_concepts > 0 else 0)
@@ -102,7 +102,7 @@ async def get_progress_dashboard(
         if p:
             concept_list.append({
                 "name": concept.display_name,
-                "progress": p.progress_percent,
+                "progress": p.progress_percent or 0,
                 "status": p.status
             })
         else:
@@ -162,8 +162,13 @@ async def update_concept_progress(
         db.add(progress)
     
     # Update fields
-    progress.time_spent_minutes += progress_data.time_spent_minutes
-    progress.progress_percent = max(progress.progress_percent, progress_data.progress_percent)  # Don't regress
+    current_time_spent = progress.time_spent_minutes or 0
+    progress.time_spent_minutes = current_time_spent + progress_data.time_spent_minutes
+    
+    # Handle None progress_percent (new records or empty database fields)
+    current_progress = progress.progress_percent or 0
+    progress.progress_percent = max(current_progress, progress_data.progress_percent)  # Don't regress
+    
     progress.status = progress_data.status
     progress.user_notes = progress_data.user_notes
     progress.last_accessed = datetime.utcnow()
