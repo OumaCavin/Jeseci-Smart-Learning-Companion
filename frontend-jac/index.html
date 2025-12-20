@@ -959,6 +959,39 @@
                             progress: 75,
                             estimated_hours: 30,
                             category: "Web Development"
+                        },
+                        {
+                            id: 5,
+                            title: "Machine Learning Fundamentals",
+                            description: "Introduction to ML algorithms and practical applications",
+                            difficulty: "beginner",
+                            duration: "10 weeks",
+                            concepts_count: 20,
+                            progress: 25,
+                            estimated_hours: 60,
+                            category: "Computer Science"
+                        },
+                        {
+                            id: 6,
+                            title: "Advanced System Architecture",
+                            description: "Design scalable distributed systems and microservices",
+                            difficulty: "Expert",
+                            duration: "12 weeks",
+                            concepts_count: 25,
+                            progress: 0,
+                            estimated_hours: 80,
+                            category: "Computer Science"
+                        },
+                        {
+                            id: 7,
+                            title: "Mobile App Development",
+                            description: "Build native mobile apps for iOS and Android",
+                            difficulty: "intermediate",
+                            duration: "8 weeks",
+                            concepts_count: 16,
+                            progress: 10,
+                            estimated_hours: 50,
+                            category: "Programming"
                         }
                     ];
                 }
@@ -966,8 +999,14 @@
                 // Store learning paths globally for filtering
                 allLearningPaths = [...learningPaths];
                 
-                // Extract unique categories dynamically
+                // Extract unique categories and difficulties dynamically
                 const uniqueCategories = [...new Set(learningPaths.map(path => path.category).filter(Boolean))];
+                const uniqueDifficulties = [...new Set(learningPaths.map(path => path.difficulty).filter(Boolean))];
+                
+                // Helper function to capitalize first letter
+                function capitalize(str) {
+                    return str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : str;
+                }
                 
                 // Render the Learning Paths Grid
                 let pathsHtml = `
@@ -977,9 +1016,9 @@
                             <div style="display: flex; gap: 1rem;">
                                 <select id="difficulty-filter" onchange="filterLearningPaths()" style="padding: 0.5rem; border-radius: 5px; border: 1px solid #ddd;">
                                     <option value="">All Difficulties</option>
-                                    <option value="Beginner">Beginner</option>
-                                    <option value="Intermediate">Intermediate</option>
-                                    <option value="Advanced">Advanced</option>
+                                    ${uniqueDifficulties.map(difficulty => 
+                                        `<option value="${difficulty}">${capitalize(difficulty)}</option>`
+                                    ).join('')}
                                 </select>
                                 <select id="category-filter" onchange="filterLearningPaths()" style="padding: 0.5rem; border-radius: 5px; border: 1px solid #ddd;">
                                     <option value="">All Categories</option>
@@ -1045,10 +1084,12 @@
             const difficultyFilter = document.getElementById('difficulty-filter').value;
             const categoryFilter = document.getElementById('category-filter').value;
             
-            // Filter the learning paths
+            // Filter the learning paths (case-insensitive comparison)
             let filteredPaths = allLearningPaths.filter(path => {
-                const matchesDifficulty = !difficultyFilter || path.difficulty === difficultyFilter;
-                const matchesCategory = !categoryFilter || path.category === categoryFilter;
+                const matchesDifficulty = !difficultyFilter || 
+                    (path.difficulty && path.difficulty.toLowerCase() === difficultyFilter.toLowerCase());
+                const matchesCategory = !categoryFilter || 
+                    (path.category && path.category.toLowerCase() === categoryFilter.toLowerCase());
                 return matchesDifficulty && matchesCategory;
             });
             
