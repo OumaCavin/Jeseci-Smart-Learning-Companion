@@ -335,6 +335,67 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+    /* Notification styles */
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        max-width: 400px;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        animation: slideInRight 0.3s ease-out;
+    }
+
+    .notification-success {
+        background: linear-gradient(135deg, #4ade80, #22c55e);
+        color: white;
+    }
+
+    .notification-error {
+        background: linear-gradient(135deg, #f87171, #ef4444);
+        color: white;
+    }
+
+    .notification-info {
+        background: linear-gradient(135deg, #60a5fa, #3b82f6);
+        color: white;
+    }
+
+    .notification-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1.25rem;
+    }
+
+    .notification-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0;
+        margin-left: 1rem;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+    }
+
+    .notification-close:hover {
+        opacity: 1;
+    }
+
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
     </style>
 </head>
 <body>
@@ -977,8 +1038,39 @@
             showLearningPaths();
         }
 
-        function startLearningPath(pathId, title) {
-            alert(`🚀 Starting learning path: "${title}"\n\nThis feature will launch the interactive learning experience for this path.\n\nComing soon: Interactive lessons, quizzes, and progress tracking!`);
+        async function startLearningPath(pathId, title) {
+            try {
+                console.log(`🚀 Starting learning path: "${title}" (ID: ${pathId})`);
+                
+                // Fetch the learning path details with concepts
+                const response = await window.JAC_HTTP.get(`/learning-paths/${pathId}`);
+                
+                if (!response.success) {
+                    throw new Error(`Failed to fetch path details: ${response.message || 'Unknown error'}`);
+                }
+                
+                const pathData = response.data;
+                const concepts = pathData.concepts || [];
+                
+                if (concepts.length === 0) {
+                    alert(`⚠️ Learning path "${title}" has no concepts assigned yet.\n\nPlease contact the administrator to add concepts to this path.`);
+                    return;
+                }
+                
+                // Get the first concept to start with
+                const firstConcept = concepts[0];
+                console.log(`📚 Starting with first concept: ${firstConcept.display_name}`);
+                
+                // Launch the AI lesson for the first concept
+                startLearningConcept(firstConcept.concept_id, firstConcept.display_name);
+                
+                // Show a brief success message
+                showNotification(`🚀 Started learning path: "${title}"\n📚 First lesson: ${firstConcept.display_name}`, 'success');
+                
+            } catch (error) {
+                console.error('Error starting learning path:', error);
+                alert(`❌ Failed to start learning path: "${title}"\n\nError: ${error.message}\n\nPlease try again or contact support if the problem persists.`);
+            }
         }
 
         async function showProgress() {
@@ -1149,6 +1241,33 @@
             } catch (error) {
                 mainContent.innerHTML = `<div class="jac-error">Failed to load progress data: ${error.message}</div>`;
             }
+        }
+
+        // Simple notification system for user feedback
+        function showNotification(message, type = 'info') {
+            // Remove existing notifications
+            const existingNotifications = document.querySelectorAll('.notification');
+            existingNotifications.forEach(notification => notification.remove());
+            
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <span>${message.replace(/\n/g, '<br>')}</span>
+                    <button class="notification-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                </div>
+            `;
+            
+            // Add to page
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
         }
 
         function showLoginModal() {

@@ -350,7 +350,7 @@ async def get_learning_paths_from_database(
     }
 
 
-@router.get("/database/{path_id}")
+@router.get("/{path_id}")
 async def get_learning_path_by_id(
     path_id: str,
     current_user: User = Depends(get_current_user),
@@ -358,6 +358,7 @@ async def get_learning_path_by_id(
 ):
     """
     Get a specific learning path by ID from the database with API transformation.
+    Includes concepts list for "Start Path" functionality.
     """
     
     learning_path = db.query(LearningPath).filter(
@@ -372,6 +373,32 @@ async def get_learning_path_by_id(
     
     # Transform to API format
     api_path = transform_learning_path_to_api_format(learning_path, current_user.user_id, db)
+    
+    # NEW: Fetch actual concepts for this path to enable "Start Path" functionality
+    path_concepts = db.query(LearningPathConcept).filter(
+        LearningPathConcept.path_id == path_id
+    ).order_by(LearningPathConcept.sequence_order).all()
+    
+    # Get concept details
+    concepts_list = []
+    for path_concept in path_concepts:
+        concept = db.query(Concept).filter(
+            Concept.concept_id == path_concept.concept_id
+        ).first()
+        
+        if concept:
+            concepts_list.append({
+                "concept_id": concept.concept_id,
+                "name": concept.name,
+                "display_name": concept.display_name,
+                "description": concept.description,
+                "difficulty_level": concept.difficulty_level,
+                "sequence_order": path_concept.sequence_order,
+                "estimated_duration": path_concept.estimated_duration
+            })
+    
+    # Add concepts to the response
+    api_path["concepts"] = concepts_list
     
     return api_path
 
