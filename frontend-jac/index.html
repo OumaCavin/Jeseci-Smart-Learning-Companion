@@ -890,6 +890,9 @@
             }
         }
 
+        // Global variable to store all learning paths for filtering
+        let allLearningPaths = [];
+
         async function showLearningPaths() {
             console.log('🛤️ Showing learning paths...');
             const mainContent = document.querySelector('.main-content');
@@ -918,11 +921,11 @@
                             title: "Object-Oriented Programming Mastery",
                             description: "Complete path from basics to advanced OOP concepts",
                             difficulty: "Intermediate",
+                            category: "Programming",
                             duration: "4 weeks",
                             concepts_count: 8,
                             progress: 0,
-                            estimated_hours: 24,
-                            category: "Programming"
+                            estimated_hours: 24
                         },
                         {
                             id: 2,
@@ -960,6 +963,12 @@
                     ];
                 }
 
+                // Store learning paths globally for filtering
+                allLearningPaths = [...learningPaths];
+                
+                // Extract unique categories dynamically
+                const uniqueCategories = [...new Set(learningPaths.map(path => path.category).filter(Boolean))];
+                
                 // Render the Learning Paths Grid
                 let pathsHtml = `
                     <div class="learning-paths-page" style="padding: 2rem;">
@@ -974,9 +983,7 @@
                                 </select>
                                 <select id="category-filter" onchange="filterLearningPaths()" style="padding: 0.5rem; border-radius: 5px; border: 1px solid #ddd;">
                                     <option value="">All Categories</option>
-                                    <option value="Programming">Programming</option>
-                                    <option value="Computer Science">Computer Science</option>
-                                    <option value="Web Development">Web Development</option>
+                                    ${uniqueCategories.map(category => `<option value="${category}">${category}</option>`).join('')}
                                 </select>
                             </div>
                         </div>
@@ -1032,10 +1039,86 @@
         }
 
         function filterLearningPaths() {
-            // This would filter the learning paths based on selected criteria
             console.log('🔍 Filtering learning paths...');
-            // For now, just reload the page
-            showLearningPaths();
+            
+            // Get filter values
+            const difficultyFilter = document.getElementById('difficulty-filter').value;
+            const categoryFilter = document.getElementById('category-filter').value;
+            
+            // Filter the learning paths
+            let filteredPaths = allLearningPaths.filter(path => {
+                const matchesDifficulty = !difficultyFilter || path.difficulty === difficultyFilter;
+                const matchesCategory = !categoryFilter || path.category === categoryFilter;
+                return matchesDifficulty && matchesCategory;
+            });
+            
+            console.log(`📊 Filtered ${filteredPaths.length} paths from ${allLearningPaths.length} total`);
+            
+            // Re-render the grid with filtered results
+            renderFilteredPaths(filteredPaths);
+        }
+
+        function renderFilteredPaths(filteredPaths) {
+            const grid = document.getElementById('learning-paths-grid');
+            
+            if (filteredPaths.length === 0) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: #666;">
+                        <h3>📭 No learning paths found</h3>
+                        <p>Try adjusting your filter criteria or <button onclick="clearFilters()" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline;">clear all filters</button></p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let pathsHtml = '';
+            filteredPaths.forEach(path => {
+                const progressColor = path.progress === 0 ? '#e2e8f0' : '#667eea';
+                const progressText = path.progress === 0 ? 'Not Started' : `${path.progress}% Complete`;
+                
+                pathsHtml += `
+                    <div class="feature-card" style="border-left: 4px solid ${progressColor}; text-align: left; position: relative;">
+                        <div style="position: absolute; top: 1rem; right: 1rem;">
+                            <span style="background: ${progressColor}; color: white; padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.8rem; font-weight: 500;">
+                                ${progressText}
+                            </span>
+                        </div>
+                        <h3>${path.title}</h3>
+                        <p>${path.description}</p>
+                        <div style="display: flex; gap: 1rem; margin: 1rem 0; font-size: 0.85rem; color: #666;">
+                            <span>📚 ${path.concepts_count} concepts</span>
+                            <span>⏱️ ${path.duration}</span>
+                            <span>🎯 ${path.difficulty}</span>
+                        </div>
+                        <div style="margin: 1rem 0;">
+                            <div style="background: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden;">
+                                <div style="background: ${progressColor}; height: 100%; width: ${path.progress}%; transition: width 0.3s ease;"></div>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
+                            <span style="background: #f1f5f9; color: #475569; padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.8rem;">
+                                ${path.category}
+                            </span>
+                            <button class="cta-btn ${path.progress === 0 ? 'primary' : 'secondary'}" style="width: 100%;" onclick="startLearningPath('${path.id}', '${path.title}')">
+                                ${path.progress === 0 ? '🚀 Start Path' : path.progress === 100 ? '✅ Completed' : '▶️ Continue'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            grid.innerHTML = pathsHtml;
+        }
+
+        function clearFilters() {
+            document.getElementById('difficulty-filter').value = '';
+            document.getElementById('category-filter').value = '';
+            renderFilteredPaths(allLearningPaths);
+        }
+
+        function showAllConceptProgress() {
+            // Navigate to progress page which shows all concepts
+            showProgress();
         }
 
         async function startLearningPath(pathId, title) {
@@ -1216,8 +1299,26 @@
                     `;
                 });
 
+                // Add summary and "show more" functionality if needed
+                const conceptProgress = progressData.concept_progress || [];
+                const totalConcepts = conceptProgress.length;
+                const completedConcepts = conceptProgress.filter(c => c.status === 'completed').length;
+                const inProgressConcepts = conceptProgress.filter(c => c.status === 'in_progress').length;
+
                 progressHtml += `
                             </div>
+                            ${totalConcepts > 10 ? `
+                                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; text-align: center;">
+                                    <p style="margin: 0; color: #666; font-size: 0.9rem;">
+                                        📊 <strong>${completedConcepts}</strong> completed • 
+                                        <strong>${inProgressConcepts}</strong> in progress • 
+                                        <strong>${totalConcepts - completedConcepts - inProgressConcepts}</strong> not started
+                                    </p>
+                                    <button onclick="showAllConceptProgress()" style="background: none; border: none; color: #667eea; cursor: pointer; font-weight: 500; margin-top: 0.5rem;">
+                                        📖 View All ${totalConcepts} Concepts
+                                    </button>
+                                </div>
+                            ` : ''}
                         </div>
 
                         <!-- Recent Activity -->

@@ -120,7 +120,12 @@ async def get_progress_dashboard(
             "completion_rate": completion_rate
         },
         "recent_activity": recent_activity,
-        "concept_progress": concept_list[:5],  # Just show top 5 in dashboard
+        "concept_progress": concept_list,  # Return full list for dashboard
+        "concept_progress_summary": {
+            "total_items": len(concept_list),
+            "displaying": min(10, len(concept_list)),  # Show up to 10 items
+            "has_more": len(concept_list) > 10
+        }
         "weekly_goals": {
             "target": 5, 
             "completed": round(total_minutes / 60, 1),
