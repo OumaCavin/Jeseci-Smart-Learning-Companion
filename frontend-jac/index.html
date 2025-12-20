@@ -1057,15 +1057,26 @@
                     return;
                 }
                 
-                // Get the first concept to start with
-                const firstConcept = concepts[0];
-                console.log(`📚 Starting with first concept: ${firstConcept.display_name}`);
+                // Find the first uncompleted concept (logical next lesson)
+                const nextConcept = concepts.find(concept => !concept.completed);
                 
-                // Launch the AI lesson for the first concept
-                startLearningConcept(firstConcept.concept_id, firstConcept.display_name);
+                if (!nextConcept) {
+                    // All concepts are completed
+                    showNotification(`🎉 Learning path "${title}" is fully completed!\n\nAll lessons have been finished. Great job!`, 'success');
+                    return;
+                }
+                
+                console.log(`📚 Starting with next concept: ${nextConcept.display_name} (status: ${nextConcept.status})`);
+                
+                // Launch the AI lesson for the next concept
+                startLearningConcept(nextConcept.concept_id, nextConcept.display_name);
                 
                 // Show a brief success message
-                showNotification(`🚀 Started learning path: "${title}"\n📚 First lesson: ${firstConcept.display_name}`, 'success');
+                const message = nextConcept.status === 'not_started' 
+                    ? `🚀 Started learning path: "${title}"\n📚 First lesson: ${nextConcept.display_name}`
+                    : `▶️ Continuing learning path: "${title}"\n📚 Next lesson: ${nextConcept.display_name}`;
+                    
+                showNotification(message, 'success');
                 
             } catch (error) {
                 console.error('Error starting learning path:', error);

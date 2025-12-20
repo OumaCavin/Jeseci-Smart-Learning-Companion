@@ -894,6 +894,7 @@
 # data/
 # uploads/
 # downloads/
+user_input_files/
 
 # Claude Agent SDK debug files
 **/.claude/debug/

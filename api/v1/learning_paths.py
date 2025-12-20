@@ -379,7 +379,17 @@ async def get_learning_path_by_id(
         LearningPathConcept.path_id == path_id
     ).order_by(LearningPathConcept.sequence_order).all()
     
-    # Get concept details
+    # Get user progress for all concepts in this path to determine completion status
+    concept_ids = [pc.concept_id for pc in path_concepts]
+    user_progress = db.query(UserConceptProgress).filter(
+        UserConceptProgress.user_id == current_user.user_id,
+        UserConceptProgress.concept_id.in_(concept_ids)
+    ).all()
+    
+    # Create progress lookup: concept_id -> progress record
+    progress_map = {p.concept_id: p for p in user_progress}
+    
+    # Get concept details with completion status
     concepts_list = []
     for path_concept in path_concepts:
         concept = db.query(Concept).filter(
@@ -387,6 +397,9 @@ async def get_learning_path_by_id(
         ).first()
         
         if concept:
+            # Get user's progress for this concept
+            progress = progress_map.get(path_concept.concept_id)
+            
             concepts_list.append({
                 "concept_id": concept.concept_id,
                 "name": concept.name,
@@ -394,7 +407,11 @@ async def get_learning_path_by_id(
                 "description": concept.description,
                 "difficulty_level": concept.difficulty_level,
                 "sequence_order": path_concept.sequence_order,
-                "estimated_duration": path_concept.estimated_duration
+                "estimated_duration": path_concept.estimated_duration,
+                # Add completion status for frontend logic
+                "status": progress.status if progress else "not_started",
+                "progress_percent": progress.progress_percent or 0 if progress else 0,
+                "completed": progress.status == "completed" if progress else False
             })
     
     # Add concepts to the response
