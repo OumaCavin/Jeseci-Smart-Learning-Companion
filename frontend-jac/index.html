@@ -735,9 +735,9 @@
                             <div class="footer-content">
                                 <p>&copy; 2025 Jeseci Smart Learning Companion | Powered by JAC Runtime</p>
                                 <div class="footer-links">
-                                    <a href="#about">About</a>
-                                    <a href="#help">Help</a>
-                                    <a href="#contact">Contact</a>
+                                    <a href="javascript:void(0)" onclick="showAbout()">About</a>
+                                    <a href="javascript:void(0)" onclick="showHelp()">Help</a>
+                                    <a href="javascript:void(0)" onclick="showContact()">Contact</a>
                                 </div>
                             </div>
                         </footer>
@@ -1571,6 +1571,290 @@
                 
             } catch (error) {
                 mainContent.innerHTML = `<div class="jac-error">Failed to load progress data: ${error.message}</div>`;
+            }
+        }
+
+        // About section
+        function showAbout() {
+            console.log('ℹ️ Showing about page...');
+            const mainContent = document.querySelector('.main-content');
+            
+            const aboutHtml = `
+                <div class="about-page" style="padding: 2rem; max-width: 800px; margin: 0 auto;">
+                    <div style="text-align: center; margin-bottom: 3rem;">
+                        <h2>🎓 About Jeseci</h2>
+                        <p style="color: #718096; font-size: 1.1rem;">Your intelligent learning companion for personalized education</p>
+                    </div>
+
+                    <div class="feature-card" style="margin-bottom: 2rem;">
+                        <h3 style="margin-top: 0;">🚀 What is Jeseci?</h3>
+                        <p style="line-height: 1.7; color: #4a5568;">
+                            Jeseci (JAC + Education + Science) is a revolutionary learning platform that combines 
+                            the power of artificial intelligence with personalized educational content. Built on the 
+                            JAC programming language and powered by a hybrid database system, Jeseci delivers 
+                            adaptive learning experiences tailored to your individual needs.
+                        </p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                        <div class="feature-card" style="text-align: center;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">🧠</div>
+                            <h4>AI-Powered Learning</h4>
+                            <p style="color: #718096; font-size: 0.9rem;">Intelligent content generation and personalized learning paths</p>
+                        </div>
+                        
+                        <div class="feature-card" style="text-align: center;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+                            <h4>Progress Tracking</h4>
+                            <p style="color: #718096; font-size: 0.9rem;">Detailed analytics and insights into your learning journey</p>
+                        </div>
+                        
+                        <div class="feature-card" style="text-align: center;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">🔗</div>
+                            <h4>Knowledge Graph</h4>
+                            <p style="color: #718096; font-size: 0.9rem;">Connected concepts that build upon each other logically</p>
+                        </div>
+                    </div>
+
+                    <div class="feature-card" style="margin-bottom: 2rem;">
+                        <h3 style="margin-top: 0;">⚡ Technology Stack</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                            <div>
+                                <h4 style="color: #667eea; margin-bottom: 0.5rem;">Frontend</h4>
+                                <ul style="color: #4a5568; margin: 0; padding-left: 1.5rem;">
+                                    <li>JAC Programming Language</li>
+                                    <li>HTML5 & CSS3</li>
+                                    <li>Vanilla JavaScript</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 style="color: #667eea; margin-bottom: 0.5rem;">Backend</h4>
+                                <ul style="color: #4a5568; margin: 0; padding-left: 1.5rem;">
+                                    <li>FastAPI (Python)</li>
+                                    <li>PostgreSQL Database</li>
+                                    <li>Neo4j Graph Database</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="feature-card" style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));">
+                        <h3 style="margin-top: 0; text-align: center;">🎯 Our Mission</h3>
+                        <p style="text-align: center; font-size: 1.1rem; line-height: 1.7; color: #4a5568;">
+                            To democratize access to high-quality, personalized education through intelligent technology 
+                            that adapts to each learner's unique needs, pace, and learning style.
+                        </p>
+                    </div>
+                </div>
+            `;
+            
+            mainContent.innerHTML = aboutHtml;
+            
+            // Update active nav state
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+        }
+
+        // Help section
+        function showHelp() {
+            console.log('❓ Showing help page...');
+            const mainContent = document.querySelector('.main-content');
+            
+            const helpHtml = `
+                <div class="help-page" style="padding: 2rem; max-width: 800px; margin: 0 auto;">
+                    <div style="text-align: center; margin-bottom: 3rem;">
+                        <h2>❓ Help & Support</h2>
+                        <p style="color: #718096; font-size: 1.1rem;">Everything you need to get the most out of Jeseci</p>
+                    </div>
+
+                    <div class="feature-card" style="margin-bottom: 2rem;">
+                        <h3 style="margin-top: 0;">🚀 Getting Started</h3>
+                        <div style="line-height: 1.7;">
+                            <h4 style="color: #667eea;">1. Create Your Account</h4>
+                            <p style="color: #4a5568;">Click "Sign Up" in the top right corner and fill in your details. You'll receive a confirmation email to verify your account.</p>
+                            
+                            <h4 style="color: #667eea;">2. Explore Concepts</h4>
+                            <p style="color: #4a5568;">Browse our comprehensive library of learning concepts across various domains like Programming, Data Science, and Computer Science.</p>
+                            
+                            <h4 style="color: #667eea;">3. Start Learning</h4>
+                            <p style="color: #4a5568;">Click "Start Learning" on any concept to begin your AI-powered lesson. Progress is automatically saved as you learn.</p>
+                            
+                            <h4 style="color: #667eea;">4. Track Progress</h4>
+                            <p style="color: #4a5568;">Visit your Dashboard to see detailed analytics, learning streaks, and achievement metrics.</p>
+                        </div>
+                    </div>
+
+                    <div class="feature-card" style="margin-bottom: 2rem;">
+                        <h3 style="margin-top: 0;">💡 Learning Tips</h3>
+                        <ul style="line-height: 1.7; color: #4a5568;">
+                            <li><strong>Set Daily Goals:</strong> Use the weekly learning goals to maintain consistent progress</li>
+                            <li><strong>Take Breaks:</strong> Learning is most effective when you pace yourself</li>
+                            <li><strong>Review Completed Content:</strong> Use the "Review" feature to reinforce your knowledge</li>
+                            <li><strong>Follow Learning Paths:</strong> Structured paths guide you through related concepts logically</li>
+                            <li><strong>Track Your Streak:</strong> Daily learning builds momentum and improves retention</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card" style="margin-bottom: 2rem;">
+                        <h3 style="margin-top: 0;">🔧 Troubleshooting</h3>
+                        <div style="line-height: 1.7;">
+                            <h4 style="color: #667eea;">Content Not Loading?</h4>
+                            <p style="color: #4a5568;">Check your internet connection and refresh the page. If issues persist, try clearing your browser cache.</p>
+                            
+                            <h4 style="color: #667eea;">Progress Not Saving?</h4>
+                            <p style="color: #4a5568;">Ensure you're logged in. Progress is automatically saved when you complete lessons.</p>
+                            
+                            <h4 style="color: #667eea;">AI Content Generation Taking Too Long?</h4>
+                            <p style="color: #4a5568;">Content generation can take 10-30 seconds. The system will show a loading indicator during this time.</p>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <h3 style="margin-top: 0;">❓ Frequently Asked Questions</h3>
+                        <div style="line-height: 1.7;">
+                            <h4 style="color: #667eea;">Is Jeseci free to use?</h4>
+                            <p style="color: #4a5568;">Currently, Jeseci is in development and available for free to early users.</p>
+                            
+                            <h4 style="color: #667eea;">What programming languages are supported?</h4>
+                            <p style="color: #4a5568;">We cover multiple languages including Python, JavaScript, Java, C++, and specialized languages like JAC.</p>
+                            
+                            <h4 style="color: #667eea;">Can I learn at my own pace?</h4>
+                            <p style="color: #4a5568;">Absolutely! Jeseci is designed to adapt to your learning speed and schedule.</p>
+                            
+                            <h4 style="color: #667eea;">How does the AI generate content?</h4>
+                            <p style="color: #4a5568;">Our AI uses advanced algorithms to create personalized, educational content based on your learning history and preferences.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            mainContent.innerHTML = helpHtml;
+            
+            // Update active nav state
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+        }
+
+        // Contact section
+        function showContact() {
+            console.log('📞 Showing contact page...');
+            const mainContent = document.querySelector('.main-content');
+            
+            const contactHtml = `
+                <div class="contact-page" style="padding: 2rem; max-width: 800px; margin: 0 auto;">
+                    <div style="text-align: center; margin-bottom: 3rem;">
+                        <h2>📞 Get In Touch</h2>
+                        <p style="color: #718096; font-size: 1.1rem;">We're here to help and would love to hear from you</p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
+                        <div class="feature-card" style="text-align: center;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">💬</div>
+                            <h3 style="margin-top: 0;">General Inquiries</h3>
+                            <p style="color: #4a5568; margin-bottom: 1rem;">Questions about Jeseci, features, or general feedback</p>
+                            <p style="color: #667eea; font-weight: 600;">info@jeseci.com</p>
+                        </div>
+                        
+                        <div class="feature-card" style="text-align: center;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">🐛</div>
+                            <h3 style="margin-top: 0;">Bug Reports</h3>
+                            <p style="color: #4a5568; margin-bottom: 1rem;">Found a bug? Help us improve by reporting it</p>
+                            <p style="color: #667eea; font-weight: 600;">bugs@jeseci.com</p>
+                        </div>
+                        
+                        <div class="feature-card" style="text-align: center;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">🚀</div>
+                            <h3 style="margin-top: 0;">Feature Requests</h3>
+                            <p style="color: #4a5568; margin-bottom: 1rem;">Ideas for new features or improvements</p>
+                            <p style="color: #667eea; font-weight: 600;">features@jeseci.com</p>
+                        </div>
+                    </div>
+
+                    <div class="feature-card" style="margin-bottom: 2rem;">
+                        <h3 style="margin-top: 0;">📧 Contact Form</h3>
+                        <form id="contact-form" onsubmit="submitContactForm(event)" style="max-width: 500px; margin: 0 auto;">
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #4a5568;">Name</label>
+                                <input type="text" id="contact-name" required style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 5px;">
+                            </div>
+                            
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #4a5568;">Email</label>
+                                <input type="email" id="contact-email" required style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 5px;">
+                            </div>
+                            
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #4a5568;">Subject</label>
+                                <select id="contact-subject" required style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 5px;">
+                                    <option value="">Select a topic</option>
+                                    <option value="general">General Inquiry</option>
+                                    <option value="bug">Bug Report</option>
+                                    <option value="feature">Feature Request</option>
+                                    <option value="support">Technical Support</option>
+                                    <option value="feedback">Feedback</option>
+                                </select>
+                            </div>
+                            
+                            <div style="margin-bottom: 1.5rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #4a5568;">Message</label>
+                                <textarea id="contact-message" required style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 5px; height: 120px;" placeholder="Tell us more about your inquiry..."></textarea>
+                            </div>
+                            
+                            <div style="text-align: center;">
+                                <button type="submit" class="cta-btn primary">Send Message</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="feature-card" style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); text-align: center;">
+                        <h3 style="margin-top: 0;">🌍 Connect With Us</h3>
+                        <p style="color: #4a5568; margin-bottom: 1.5rem;">Follow our development journey and stay updated</p>
+                        <div style="display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap;">
+                            <a href="#" style="text-decoration: none; color: #667eea; font-weight: 600;">📱 GitHub</a>
+                            <a href="#" style="text-decoration: none; color: #667eea; font-weight: 600;">🐦 Twitter</a>
+                            <a href="#" style="text-decoration: none; color: #667eea; font-weight: 600;">💼 LinkedIn</a>
+                            <a href="#" style="text-decoration: none; color: #667eea; font-weight: 600;">📺 YouTube</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            mainContent.innerHTML = contactHtml;
+            
+            // Update active nav state
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+        }
+
+        // Handle contact form submission
+        async function submitContactForm(event) {
+            event.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('contact-name').value,
+                email: document.getElementById('contact-email').value,
+                subject: document.getElementById('contact-subject').value,
+                message: document.getElementById('contact-message').value
+            };
+            
+            try {
+                // Show loading state
+                const submitBtn = event.target.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.textContent = 'Sending...';
+                submitBtn.disabled = true;
+                
+                // Simulate form submission (in a real app, this would send to your backend)
+                console.log('Contact form data:', formData);
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Reset form and show success
+                event.target.reset();
+                showNotification('✅ Thank you for your message! We\'ll get back to you soon.', 'success');
+                
+            } catch (error) {
+                showNotification('❌ Failed to send message. Please try again.', 'error');
+            } finally {
+                const submitBtn = event.target.querySelector('button[type="submit"]');
+                submitBtn.textContent = 'Send Message';
+                submitBtn.disabled = false;
             }
         }
 
