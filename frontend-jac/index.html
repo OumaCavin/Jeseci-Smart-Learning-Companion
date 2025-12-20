@@ -1603,7 +1603,7 @@
 
             try {
                 // Load content from API using JAC_HTTP wrapper
-                const contentResponse = await window.JAC_HTTP.get(`/content/content/${contentId}`);
+                const contentResponse = await window.JAC_HTTP.get(`/content/${contentId}`);
 
                 if (!contentResponse.success) {
                     throw new Error(contentResponse.error || `HTTP error! status: ${contentResponse.status}`);
@@ -1662,7 +1662,7 @@
                 footerElement.style.display = 'flex';
                 
                 // Update progress info using JAC_HTTP wrapper
-                const progressResponse = await window.JAC_HTTP.get(`/content/content/${contentId}/progress`);
+                const progressResponse = await window.JAC_HTTP.get(`/content/${contentId}/progress`);
                 
                 if (progressResponse.success) {
                     const progress = progressResponse.data;
@@ -1726,7 +1726,7 @@
         // Update content progress using JAC_HTTP wrapper
         async function updateContentProgress(contentId) {
             try {
-                await window.JAC_HTTP.post(`/content/content/${contentId}/progress`, {
+                await window.JAC_HTTP.post(`/content/${contentId}/progress`, {
                     status: 'in_progress',
                     progress_percent: 10 // Mark as started
                 });
