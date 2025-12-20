@@ -38,6 +38,8 @@ async def get_progress_dashboard(
         UserConceptProgress.user_id == current_user.user_id
     ).all()
     
+    print(f"📊 Found {len(progress_records)} progress records for user: {current_user.user_id}")
+    
     # 2. Calculate Aggregates
     total_concepts = len(progress_records)
     completed = sum(1 for p in progress_records if p.status == 'completed')
@@ -132,6 +134,9 @@ async def update_concept_progress(
 ):
     """Update progress for a specific concept"""
     
+    print(f"🔄 Updating progress for concept: {concept_id}")
+    print(f"📊 Update data received: {progress_data}")
+    
     # Check if concept exists first
     concept = db.query(Concept).filter(Concept.concept_id == concept_id).first()
     if not concept:
@@ -161,6 +166,8 @@ async def update_concept_progress(
     
     db.commit()
     db.refresh(progress)
+    
+    print(f"✅ Progress updated successfully: {progress.status}, time_spent_minutes: {progress.time_spent_minutes}")
     
     return {
         "message": "Progress updated successfully", 

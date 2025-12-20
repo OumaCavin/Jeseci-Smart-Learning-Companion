@@ -1532,7 +1532,7 @@
                 await window.JAC_HTTP.post(`/progress/concepts/${conceptId}/update`, {
                     status: 'completed',
                     progress_percent: 100,
-                    time_spent: 15 // Estimated time spent
+                    time_spent_minutes: 15 // Estimated time spent
                 });
 
                 showSuccessMessage('🎉 Lesson completed! Progress updated.');
