@@ -16,6 +16,7 @@ from config.database import (
     init_db, close_db_connections, check_all_connections,
     get_db, get_redis_connection, get_neo4j_driver
 )
+from config.logging_config import setup_logging, get_logger
 from api.v1 import (
     auth, users, concepts, content, learning_paths, progress, 
     quizzes, achievements, analytics
@@ -24,6 +25,9 @@ from api.v1 import (
 
 # Load environment variables
 load_dotenv()
+
+# Setup Logging Configuration
+setup_logging()
 
 
 @asynccontextmanager

@@ -11,7 +11,11 @@ from pydantic import BaseModel
 
 from api.v1.auth import get_current_user
 from config.database import get_db
+from config.logging_config import get_logger
 from database.models import User, UserConceptProgress, Concept
+
+# Get logger for this module
+logger = get_logger(__name__)
 
 
 # Router instance
@@ -38,7 +42,7 @@ async def get_progress_dashboard(
         UserConceptProgress.user_id == current_user.user_id
     ).all()
     
-    print(f"📊 Found {len(progress_records)} progress records for user: {current_user.user_id}")
+    logger.info(f"📊 Found {len(progress_records)} progress records for user: {current_user.user_id}")
     
     # 2. Calculate Aggregates
     total_concepts = len(progress_records)
@@ -134,8 +138,8 @@ async def update_concept_progress(
 ):
     """Update progress for a specific concept"""
     
-    print(f"🔄 Updating progress for concept: {concept_id}")
-    print(f"📊 Update data received: {progress_data}")
+    logger.info(f"🔄 Updating progress for concept: {concept_id}")
+    logger.debug(f"📊 Update data received: {progress_data}")
     
     # Check if concept exists first
     concept = db.query(Concept).filter(Concept.concept_id == concept_id).first()
@@ -167,7 +171,7 @@ async def update_concept_progress(
     db.commit()
     db.refresh(progress)
     
-    print(f"✅ Progress updated successfully: {progress.status}, time_spent_minutes: {progress.time_spent_minutes}")
+    logger.info(f"✅ Progress updated successfully: {progress.status}, time_spent_minutes: {progress.time_spent_minutes}")
     
     return {
         "message": "Progress updated successfully", 
