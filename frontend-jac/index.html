@@ -1349,25 +1349,42 @@
         async function submitNewConcept(event) {
             event.preventDefault();
             
-            const formData = {
-                display_name: document.getElementById('conceptName').value,
-                description: document.getElementById('conceptDescription').value,
-                domain: document.getElementById('conceptDomain').value,
-                difficulty_level: document.getElementById('conceptDifficulty').value
-            };
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
             
             try {
-                // This would typically call your backend API
+                // Show loading state
+                submitBtn.textContent = 'Creating...';
+                submitBtn.disabled = true;
+                
+                const formData = {
+                    name: document.getElementById('conceptName').value,
+                    display_name: document.getElementById('conceptName').value,
+                    description: document.getElementById('conceptDescription').value,
+                    domain: document.getElementById('conceptDomain').value,
+                    difficulty_level: document.getElementById('conceptDifficulty').value,
+                    category: document.getElementById('conceptDomain').value // Use domain as category for now
+                };
+                
                 console.log('Creating new concept:', formData);
                 
-                // Simulate API call
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                // Make real API call to create concept
+                const response = await window.JAC_HTTP.post('/concepts', formData);
                 
-                showNotification('✅ Concept created successfully! (Demo - backend integration needed)', 'success');
+                if (!response.success) {
+                    throw new Error(response.error || 'Failed to create concept');
+                }
+                
+                showNotification('✅ Concept created successfully!', 'success');
                 showConcepts();
                 
             } catch (error) {
+                console.error('Error creating concept:', error);
                 showNotification('❌ Failed to create concept: ' + error.message, 'error');
+            } finally {
+                // Reset button state
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
             }
         }
 

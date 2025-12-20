@@ -101,12 +101,14 @@ async def get_progress_dashboard(
         p = progress_map.get(concept.concept_id)
         if p:
             concept_list.append({
+                "concept_id": concept.concept_id,  # Add concept_id for frontend matching
                 "name": concept.display_name,
                 "progress": p.progress_percent or 0,
                 "status": p.status
             })
         else:
             concept_list.append({
+                "concept_id": concept.concept_id,  # Add concept_id for frontend matching
                 "name": concept.display_name,
                 "progress": 0,
                 "status": "not_started"
